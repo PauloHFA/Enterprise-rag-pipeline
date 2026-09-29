@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: raguser
+      POSTGRES_PASSWORD: ragpass
+      POSTGRES_DB: ragdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: raguser
+      RABBITMQ_DEFAULT_PASS: ragpass
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  api:
+    build: ./api
+    environment:
+      - DATABASE_URL=postgresql://raguser:ragpass@postgres:5432/ragdb
+      - RABBITMQ_URL=amqp://raguser:ragpass@rabbitmq:5672
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    depends_on:
+      - postgres
+      - rabbitmq
+      - minio
+    ports:
+      - "8000:8000"
+
+  worker:
+    build: ./worker
+    environment:
+      - DATABASE_URL=postgresql://raguser:ragpass@postgres:5432/ragdb
+      - RABBITMQ_URL=amqp://raguser:ragpass@rabbitmq:5672
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    depends_on:
+      - postgres
+      - rabbitmq
+      - minio
+
+volumes:
+  postgres_data:
+  minio_data:
