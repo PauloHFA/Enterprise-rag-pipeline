@@ -2,14 +2,15 @@ import os
 import uuid
 import json
 from typing import List, Optional
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, BackgroundTasks, Security
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from . import models, database
 from .schemas import DocumentCreate, DocumentResponse, ChunkResponse, SearchRequest, SearchResponse
 from .minio_client import MinioClient
 from .rabbitmq_client import RabbitMQClient
-from .config import Settings
+from .config import settings
+from .security import get_api_key
 
 app = FastAPI(title="Enterprise RAG API", version="0.1.0")
 
@@ -43,7 +44,8 @@ async def upload_document(
     file: UploadFile = File(...),
     tenant_id: str = "default",
     metadata: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    api_key: str = Security(get_api_key)
 ):
     # Read file content
     content = await file.read()
@@ -106,14 +108,14 @@ async def upload_document(
     return db_document
 
 @app.get("/v1/documents/{document_id}", response_model=DocumentResponse)
-async def get_document(document_id: uuid.UUID, db: Session = Depends(get_db)):
+async def get_document(document_id: uuid.UUID, db: Session = Depends(get_db), api_key: str = Security(get_api_key)):
     document = db.query(models.Document).filter(models.Document.id == document_id).first()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     return document
 
 @app.delete("/v1/documents/{document_id}", status_code=204)
-async def delete_document(document_id: uuid.UUID, db: Session = Depends(get_db)):
+async def delete_document(document_id: uuid.UUID, db: Session = Depends(get_db), api_key: str = Security(get_api_key)):
     document = db.query(models.Document).filter(models.Document.id == document_id).first()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -130,7 +132,8 @@ async def delete_document(document_id: uuid.UUID, db: Session = Depends(get_db))
 async def reindex_document(
     document_id: uuid.UUID,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    api_key: str = Security(get_api_key)
 ):
     document = db.query(models.Document).filter(models.Document.id == document_id).first()
     if not document:
@@ -157,12 +160,43 @@ async def reindex_document(
 @app.post("/v1/search", response_model=SearchResponse)
 async def search_documents(
     search_request: SearchRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    api_key: str = Security(get_api_key)
 ):
-    # This is a placeholder for the hybrid search implementation.
-    # We will implement the actual search logic in a separate service or worker.
-    # For now, we return an empty response.
-    return SearchResponse(results=[], took_ms=0)
+    # Import here to avoid circular imports
+    from .search import hybrid_search_sql
+    import time
+    
+    start_time = time.time()
+    
+    # Perform hybrid search
+    results = hybrid_search_sql(
+        db=db,
+        query_text=search_request.query,
+        top_k=search_request.top_k,
+        mode=search_request.mode,
+        filters=search_request.filters,
+        rrf_k=search_request.rrf.get("k", 60) if search_request.rrf else 60,
+        weights=search_request.rrf.get("weights", {"lexical": 1.0, "vector": 1.0}) if search_request.rrf else {"lexical": 1.0, "vector": 1.0}
+    )
+    
+    took_ms = int((time.time() - start_time) * 1000)
+    
+    # Convert results to SearchResponse format
+    search_results = []
+    for result in results:
+        search_results.append(
+            SearchResult(
+                chunk_id=result["id"],
+                document_id=result["document_id"],
+                score=result["score"],
+                page=result.get("page"),
+                snippet=result.get("snippet", ""),
+                ranks=result.get("ranks", {"lexical": 0, "vector": 0})
+            )
+        )
+    
+    return SearchResponse(results=search_results, took_ms=took_ms)
 
 @app.get("/healthz")
 async def health_check():

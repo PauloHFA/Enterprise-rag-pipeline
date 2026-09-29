@@ -1,31 +1,31 @@
-# Enterprise RAG Pipeline - Senior Specialist Documentation
+# Enterprise RAG Pipeline - Documentação Técnica
 
-## Overview
+## Visão Geral
 
-This document provides a comprehensive technical deep-dive into the Enterprise RAG (Retrieval-Augmented Generation) pipeline implementation. The system is designed for scalable, resilient document ingestion and hybrid search (lexical + vector) with event-driven architecture.
+Este documento fornece uma análise técnica abrangente da implementação do pipeline Enterprise RAG (Retrieval-Augmented Generation). O sistema é projetado para ingestão e busca híbrida (léxica + vetorial) de documentos, escalável e resiliente, com arquitetura orientada a eventos.
 
-## Table of Contents
-1. [System Architecture](#system-architecture)
-2. [Core Components](#core-components)
-3. [Data Flow & Pipeline Stages](#data-flow--pipeline-stages)
-4. [Technology Stack](#technology-stack)
-5. [Database Schema](#database-schema)
-6. [API Contracts](#api-contracts)
-7. [Message Envelope & Event-Driven Communication](#message-envelope--event-driven-communication)
-8. [Chunking Strategy](#chunking-strategy)
-9. [Embedding & Indexing](#embedding--indexing)
-10. [Hybrid Search & RRF Fusion](#hybrid-search--rrf-fusion)
-11. [Resilience & Observability](#resilience--observability)
-12. [Deployment & Operations](#deployment--operations)
-13. [Extensibility & Customization](#extensibility--customization)
-14. [Performance Considerations](#performance-considerations)
-15. [Security Considerations](#security-considerations)
+## Índice
+1. [Arquitetura do Sistema](#arquitetura-do-sistema)
+2. [Componentes Principais](#componentes-principais)
+3. [Fluxo de Dados & Estágios do Pipeline](#fluxo-de-dados--estágios-do-pipeline)
+4. [Stack Tecnológica](#stack-tecnológica)
+5. [Schema do Banco de Dados](#schema-do-banco-de-dados)
+6. [Contratos de API](#contratos-de-api)
+7. [Envelope de Mensagens & Comunicação Orientada a Eventos](#envelope-de-mensagens--comunicação-orientada-a-eventos)
+8. [Estratégia de Chunking](#estratégia-de-chunking)
+9. [Embedding & Indexação](#embedding--indexação)
+10. [Busca Híbrida & RRF Fusion](#busca-híbrida--rrf-fusion)
+11. [Resiliência & Observabilidade](#resiliência--observabilidade)
+12. [Deploy & Operações](#deploy--operações)
+13. [Extensibilidade & Customização](#extensibilidade--customização)
+14. [Considerações de Performance](#considerações-de-performance)
+15. [Considerações de Segurança](#considerações-de-segurança)
 
 ---
 
-## System Architecture
+## Arquitetura do Sistema
 
-The Enterprise RAG pipeline follows a microservices-inspired, event-driven architecture with clear separation of concerns:
+O pipeline Enterprise RAG segue uma arquitetura inspirada em microservices, orientada a eventos com clara separação de preocupações:
 
 ```
 +------------------+     +------------------+     +------------------+
@@ -40,64 +40,64 @@ The Enterprise RAG pipeline follows a microservices-inspired, event-driven archi
 +------------------+     +------------------+     +------------------+
 ```
 
-### Key Architectural Principles
-- **Event-Driven**: All processing triggered via RabbitMQ messages
-- **Idempotency**: SHA-256 hash prevents duplicate processing
-- **Separation of Concerns**: API handles ingress, workers handle heavy lifting
-- **Scalability**: Horizontal scaling via multiple worker instances
-- **Resilience**: Retry mechanisms, DLQ patterns, graceful degradation
+### Princípios Arquitetônicos Chave
+- **Orientado a Eventos**: Todos os processamentos são acionados via mensagens RabbitMQ
+- **Idempotência**: Hash SHA-256 previne processamento duplicado
+- **Separação de Preocupações**: API lida com ingresso, workers com processamento pesado
+- **Escalabilidade**: Múltiplas instâncias de workers com escala horizontal
+- **Resiliência**: Padrões de retry, DLQ, degradação graceful
 
-## Core Components
+## Componentes Principais
 
 ### 1. API Service (FastAPI)
-- **Responsibility**: Document ingestion, status querying, search interface
+- **Responsabilidade**: Ingestão de documentos, consulta de status, interface de busca
 - **Endpoints**:
-  - `POST /v1/documents` - Upload document (multipart/form-data)
-  - `GET /v1/documents/{id}` - Retrieve document metadata & status
-  - `DELETE /v1/documents/{id}` - Delete document & associated data
-  - `POST /v1/documents/{id}/reindex` - Trigger reprocessing
-  - `POST /v1/search` - Hybrid search with RRF fusion
-  - Health (`/healthz`, `/readyz`) and metrics (`/metrics`) endpoints
-- **Technologies**: FastAPI, SQLAlchemy 2.0, Pydantic v2, python-multipart
+  - `POST /v1/documents` - Upload de documento (multipart/form-data)
+  - `GET /v1/documents/{id}` - Recuperar metadados e status do documento
+  - `DELETE /v1/documents/{id}` - Deletar documento e dados associados
+  - `POST /v1/documents/{id}/reindex` - Disparar reprocessamento
+  - `POST /v1/search` - Busca híbrida com fusão RRF
+  - Endpoints de health (`/healthz`, `/readyz`) e métricas (`/metrics`)
+- **Tecnologias**: FastAPI, SQLAlchemy 2.0, Pydantic v2, python-multipart
 
 ### 2. Worker Service
-- **Responsibility**: Asynchronous document processing pipeline
-- **Stages**:
-  1. Download from MinIO
-  2. Text extraction (format-specific)
-  3. Semantic chunking
-  4. Embedding generation
-  5. Database persistence (vector + lexical)
-- **Technologies**: PyMuPDF, python-docx, BeautifulSoup, Sentence-Transformers, pgvector
+- **Responsabilidade**: Pipeline assíncrono de processamento de documentos
+- **Estágios**:
+  1. Download do MinIO
+  2. Extração de texto (específica por formato)
+  3. Chunking semântico
+  4. Geração de embeddings
+  5. Persistência no banco (vetorial + léxico)
+- **Tecnologias**: PyMuPDF, python-docx, BeautifulSoup, Sentence-Transformers, pgvector
 
 ### 3. Message Broker (RabbitMQ)
-- **Exchanges**: `document.upload`, `document.reindex` (direct type)
-- **Queues**: `document.upload.queue`, `document.reindex.queue` (durable)
-- **Routing Keys**: Match exchange names for direct routing
-- **Pattern**: At-least-once delivery with manual acknowledgment
+- **Exchanges**: `document.upload`, `document.reindex` (tipo direct)
+- **Queues**: `document.upload.queue`, `document.reindex.queue` (duráveis)
+- **Routing Keys**: Correspondem aos nomes dos exchanges para roteamento direto
+- **Padrão**: Entrega at-least-once com acknowledgment manual
 
 ### 4. Object Storage (MinIO)
 - **Bucket**: `documents`
-- **Storage Key Pattern**: `{tenant_id}/{uuid4}_{original_filename}`
-- **Purpose**: Immutable storage of source documents for reprocessing
+- **Padrão de Storage Key**: `{tenant_id}/{uuid4}_{nome_original_arquivo}`
+- **Propósito**: Armazenamento imutável de documentos originais para reprocessamento
 
-### 5. Database (PostgreSQL + Extensions)
-- **Extensions**: `pgvector` (vector similarity), `btree_gin` (for TSVECTOR)
-- **Tables**: `documents`, `chunks`
-- **Indexes**: 
-  - HNSW on `embedding` (vector_cosine_ops)
-  - GIN on `tsv` (tsvector column)
-  - Composite indexes for tenant/status lookups
+### 5. Banco de Dados (PostgreSQL + Extensões)
+- **Extensões**: `pgvector` (similaridade vetorial), `btree_gin` (para TSVECTOR)
+- **Tabelas**: `documents`, `chunks`
+- **Índices**: 
+  - HNSW em `embedding` (vector_cosine_ops)
+  - GIN em `tsv` (coluna tsvector)
+  - Índices compostos para consultas tenant/status
 
-## Data Flow & Pipeline Stages
+## Fluxo de Dados & Estágios do Pipeline
 
-### Stage 1: Document Ingestion
-1. Client POSTs file to `/v1/documents` with optional `tenant_id` and `metadata`
-2. API validates file, computes SHA-256 hash
-3. Idempotency check: if hash exists, return existing document
-4. Store file in MinIO under generated `storage_key`
-5. Create `Document` record with status=`queued`
-6. Publish `document.upload` message to RabbitMQ with payload:
+### Estágio 1: Ingestão de Documento
+1. Cliente faz POST do arquivo para `/v1/documents` com `tenant_id` e `metadata` opcionais
+2. API valida o arquivo, calcula hash SHA-256
+3. Verificação de idempotência: se hash existe, retorna documento existente
+4. Armazena arquivo no MinIO sob `storage_key` gerado
+5. Cria registro `Document` com status=`queued`
+6. Publica mensagem `document.upload` no RabbitMQ com payload:
    ```json
    {
      "document_id": "uuid",
@@ -109,86 +109,86 @@ The Enterprise RAG pipeline follows a microservices-inspired, event-driven archi
    }
    ```
 
-### Stage 2: Text Extraction
-Worker consumes message, downloads file from MinIO, routes to extractor based on MIME type:
-- **PDF**: PyMuPDF (`fitz`) - preserves reading order
-- **DOCX**: python-docx - extracts paragraph text
-- **HTML**: BeautifulSoup - removes script/style, extracts visible text
-- **Plain Text**: UTF-8 decode
-- **Unsupported**: Log warning, return empty string (results in failed processing)
+### Estágio 2: Extração de Texto
+Worker consome a mensagem, baixa o arquivo do MinIO, roteia para o extrator baseado no tipo MIME:
+- **PDF**: PyMuPDF (`fitz`) - preserva ordem de leitura
+- **DOCX**: python-docx - extrai texto de parágrafos
+- **HTML**: BeautifulSoup - remove script/style, extrai texto visível
+- **Texto Simples**: Decodificação UTF-8
+- **Não Suportado**: Log de warning, retorna string vazia (resulta em processamento falho)
 
-### Stage 3: Chunking
-Current implementation uses simple character-based chunking:
-- **Chunk Size**: 500 characters (configurable)
-- **Overlap**: 50 characters (configurable)
-- **Algorithm**: Sliding window with overlap to preserve context across boundaries
-- **Future Enhancements**: 
-  - Sentence-boundary aware chunking (NLTK/spaCy)
-  - Paragraph/semantic chunking
-  - Token-based chunking for LLM compatibility
+### Estágio 3: Chunking
+Implementação atual usa chunking simples baseado em caracteres:
+- **Tamanho do Chunk**: 500 caracteres (configurável)
+- **Overlap**: 50 caracteres (configurável)
+- **Algoritmo**: Janela deslizante com overlap para preservar contexto entre fronteiras
+- **Melhorias Futuras**: 
+  - Chunking consciente de fronteiras de sentença (NLTK/spaCy)
+  - Chunking por parágrafo/semântico
+  - Chunking baseado em tokens para compatibilidade com LLM
 
-### Stage 4: Embedding Generation
-- **Model**: Sentence-Transformers multilingual model (default: `paraphrase-multilingual-MiniLM-L12-v2`)
-- **Dimension**: 384 vectors (model-dependent)
-- **Processing**: Batch encoding per chunk (could be optimized with true batching)
-- **Output**: List of 384 floats stored as `pgvector` type
+### Estágio 4: Geração de Embeddings
+- **Modelo**: Modelo multilíngue Sentence-Transformers (padrão: `paraphrase-multilingual-MiniLM-L12-v2`)
+- **Dimensão**: 384 vetores (dependente do modelo)
+- **Processamento**: Codificação em lote por chunk (poderia ser otimizado com batching real)
+- **Saída**: Lista de 384 floats armazenada como tipo `pgvector`
 
-### Stage 5: Indexing & Persistence
-For each chunk:
-1. Generate embedding vector
-2. Compute `tsv` column via database-generated TSVECTOR (Portuguese)
-3. Insert `Chunk` record with:
+### Estágio 5: Indexação & Persistência
+Para cada chunk:
+1. Gerar vetor de embedding
+2. Calcular coluna `tsv` via TSVECTOR gerado pelo banco (Português)
+3. Inserir registro `Chunk` com:
    - `document_id` (FK)
-   - `chunk_idx` (sequential)
-   - `page` (nullable - future enhancement)
-   - `content` (text)
-   - `chunker_version` (for reproducibility)
-   - `embedding_model` (model name/version)
-   - `embedding` (vector)
-   - `tsv` (auto-generated)
-4. Update `Document` status to `completed`
+   - `chunk_idx` (sequencial)
+   - `page` (nullable - melhoria futura)
+   - `content` (texto)
+   - `chunker_version` (para reprodutibilidade)
+   - `embedding_model` (nome/versão do modelo)
+   - `embedding` (vetor)
+   - `tsv` (auto-gerado)
+4. Atualizar status do `Document` para `completed`
 
-### Stage 6: Hybrid Search
-Search endpoint (`POST /v1/search`) implements:
-1. **Lexical Search**: 
-   - Convert query to `tsquery` using `websearch_to_tsquery('portuguese', :qtext)`
-   - Rank by `ts_rank_cd(tsv, query)`
-   - Return top-K (`:top_k`, default 50)
-2. **Vector Search**:
-   - Compute query embedding via same model
-   - Use `<=>` cosine distance operator on `embedding` column
-   - Order by distance ascending, limit `:top_k`
-3. **Fusion**: Reciprocal Rank Fusion (RRF)
-   - Score = Σ (1 / (k + rank_i)) for each list where document appears
-   - Default `k = 60` (standard value for RRF)
-   - Optional weights per search type
-4. **Result Composition**:
-   - Return chunks with combined RRF score
-   - Include snippet (highlighted excerpt)
-   - Include individual ranks for explainability
-   - Apply metadata filters (tenant, tags, date ranges) within each subquery
+### Estágio 6: Busca Híbrida
+Endpoint de busca (`POST /v1/search`) implementa:
+1. **Busca Léxica**: 
+   - Converter query para `tsquery` usando `websearch_to_tsquery('portuguese', :qtext)`
+   - Ranquear por `ts_rank_cd(tsv, query)`
+   - Retornar top-K (`:top_k`, padrão 50)
+2. **Busca Vetorial**:
+   - Calcular embedding da query via mesmo modelo
+   - Usar operador `<=>` de distância cosseno na coluna `embedding`
+   - Ordenar por distância ascendente, limitar `:top_k`
+3. **Fusão**: Reciprocal Rank Fusion (RRF)
+   - Score = Σ (1 / (k + rank_i)) para cada lista onde o documento aparece
+   - Padrão `k = 60` (valor padrão para RRF)
+   - Pesos opcionais por tipo de busca
+4. **Composição do Resultado**:
+   - Retornar chunks com score RRF combinado
+   - Incluir snippet (trecho destacado)
+   - Incluir ranks individuais para explicabilidade
+   - Aplicar filtros de metadados (tenant, tags, intervalos de data) dentro de cada subquery
 
-## Technology Stack
+## Stack Tecnológica
 
-| Layer | Technology | Version | Purpose |
-|-------|------------|---------|---------|
-| **API** | FastAPI | 0.109.0 | Async web framework |
-| | Uvicorn | 0.27.0 | ASGI server |
-| | SQLAlchemy | 2.0.25 | ORM + Core |
-| | Pydantic | 2.5.3 | Data validation |
-| | python-multipart | 0.0.6 | Form parsing |
-| **Worker** | PyMuPDF (fitz) | 1.24.7 | PDF text extraction |
-| | python-docx | 1.1.0 | DOCX extraction |
-| | BeautifulSoup4 | 4.12.2 | HTML parsing |
-| | Sentence-Transformers | 2.2.2 | Embedding model |
-| | Torch | 2.3.0 | ML backend |
-| **Infrastructure** | PostgreSQL | 15 | Relational DB |
-| | pgvector | 0.2.0 | Vector similarity |
-| | RabbitMQ | 3-management | Message broker |
-| | MinIO | latest | S3-compatible storage |
-| | Docker Compose | 3.8 | Orchestration |
-| **Observability** | Prometheus Client | 0.19.0 | Metrics exposition |
-| | Standard Logging | - | Structured logging |
+| Camada | Tecnologia | Versão | Propósito | 
+|--------|------------|--------|-----------|
+| **API** | FastAPI | 0.109.0 | Framework web assíncrono | 
+| | Uvicorn | 0.27.0 | Servidor ASGI | 
+| | SQLAlchemy | 2.0.25 | ORM + Core | 
+| | Pydantic | 2.5.3 | Validação de dados | 
+| | python-multipart | 0.0.6 | Parsing de formulários | 
+| **Worker** | PyMuPDF (fitz) | 1.24.7 | Extração de texto de PDF | 
+| | python-docx | 1.1.0 | Extração de texto de DOCX | 
+| | BeautifulSoup4 | 4.12.2 | Parsing de HTML | 
+| | Sentence-Transformers | 2.2.2 | Modelo de embedding | 
+| | Torch | 2.3.0 | Backend de ML | 
+| **Infraestrutura** | PostgreSQL | 15 | Banco de dados relacional | 
+| | pgvector | 0.2.0 | Similaridade vetorial | 
+| | RabbitMQ | 3-management | Corretor de mensagens | 
+| | MinIO | latest | Armazenamento S3-compatível | 
+| | Docker Compose | 3.8 | Orquestração | 
+| **Observabilidade** | Prometheus Client | 0.19.0 | Exposição de métricas | 
+| | Standard Logging | - | Logging estruturado ||
 
 ## Database Schema
 
