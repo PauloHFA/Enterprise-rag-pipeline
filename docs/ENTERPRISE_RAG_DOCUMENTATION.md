@@ -17,9 +17,33 @@ Este documento fornece uma análise técnica abrangente da implementação do pi
 10. [Busca Híbrida & RRF Fusion](#busca-híbrida--rrf-fusion)
 11. [Resiliência & Observabilidade](#resiliência--observabilidade)
 12. [Deploy & Operações](#deploy--operações)
-13. [Extensibilidade & Customização](#extensibilidade--customização)
-14. [Considerações de Performance](#considerações-de-performance)
-15. [Considerações de Segurança](#considerações-de-segurança)
+13. [Deploy Free Tier (Sem Custo)](#deploy-free-tier-sem-custo)
+14. [Testes & CI/CD](#testes--cicd)
+15. [Extensibilidade & Customização](#extensibilidade--customização)
+16. [Considerações de Performance](#considerações-de-performance)
+17. [Considerações de Segurança](#considerações-de-segurança)
+
+---
+
+## Status da Implementação
+
+| Item | Status | Artefato |
+|------|--------|----------|
+| API Service (FastAPI) | ✅ Completo | `api/main.py` |
+| Worker Service | ✅ Completo | `worker/worker.py` |
+| Busca Híbrida (RRF) | ✅ Completo | `api/search.py` |
+| Autenticação (API Key) | ✅ Completo | `api/security.py` |
+| Rate Limiting | ✅ Completo | `api/rate_limiter.py` |
+| DLQ + Retry Logic | ✅ Completo | `api/rabbitmq_client.py`, `worker/worker.py` |
+| Métricas Prometheus | ✅ Completo | `api/metrics.py` |
+| Dashboards Grafana | ✅ Completo | `grafana/dashboards/` |
+| TLS/SSL (nginx) | ✅ Completo | `nginx/nginx.conf`, `nginx/nginx.free.conf` |
+| Backup/Restore | ✅ Completo | `scripts/backup.sh`, `scripts/restore.sh` |
+| Testes (unit + integração) | ✅ Completo | `tests/` |
+| CI/CD (GitHub Actions) | ✅ Completo | `.github/workflows/ci.yml` |
+| Deploy Free Tier | ✅ Completo | `docker-compose.free.yml`, `scripts/bootstrap-free.sh` |
+| Autenticação OAuth2/JWT | ⏳ Planejado | Roadmap Fase 2 |
+| GPU acceleration | ⏳ Planejado | Roadmap Fase 3 |
 
 ---
 
@@ -46,6 +70,8 @@ O pipeline Enterprise RAG segue uma arquitetura inspirada em microservices, orie
 - **Separação de Preocupações**: API lida com ingresso, workers com processamento pesado
 - **Escalabilidade**: Múltiplas instâncias de workers com escala horizontal
 - **Resiliência**: Padrões de retry, DLQ, degradação graceful
+- **Defense in Depth**: Rate limiting na aplicação + rate limiting no nginx
+- **Custo Zero**: Embeddings locais, sem dependência de APIs pagas
 
 ## Componentes Principais
 
@@ -58,7 +84,15 @@ O pipeline Enterprise RAG segue uma arquitetura inspirada em microservices, orie
   - `POST /v1/documents/{id}/reindex` - Disparar reprocessamento
   - `POST /v1/search` - Busca híbrida com fusão RRF
   - Endpoints de health (`/healthz`, `/readyz`) e métricas (`/metrics`)
-- **Tecnologias**: FastAPI, SQLAlchemy 2.0, Pydantic v2, python-multipart
+- **Tecnologias**: FastAPI, SQLAlchemy 2.0, Pydantic v2, python-multipart, prometheus-client
+
+### 1.1 Middleware de Rate Limiting
+- **Implementação**: Sliding window (janela deslizante de 60 segundos)
+- **Identificação do cliente**: API Key (`X-API-Key`) ou IP de origem
+- **Exceções**: `/healthz`, `/readyz`, `/metrics` não são limitados
+- **Headers de resposta**: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- **Algoritmo alternativo**: Token bucket (implementado em `api/rate_limiter.py`)
+- **Defense in depth**: nginx aplica limites adicionais por zona (`api_limit`, `search_limit`, `auth_limit`)
 
 ### 2. Worker Service
 - **Responsabilidade**: Pipeline assíncrono de processamento de documentos
@@ -72,9 +106,20 @@ O pipeline Enterprise RAG segue uma arquitetura inspirada em microservices, orie
 
 ### 3. Message Broker (RabbitMQ)
 - **Exchanges**: `document.upload`, `document.reindex` (tipo direct)
-- **Queues**: `document.upload.queue`, `document.reindex.queue` (duráveis)
+- **Dead Letter Exchange**: `document.dlx` (tipo direct)
+- **Queues Principais**: `document.upload.queue`, `document.reindex.queue` (duráveis)
+- **Queues DLQ**: `document.upload.dlq`, `document.reindex.dlq` (duráveis)
 - **Routing Keys**: Correspondem aos nomes dos exchanges para roteamento direto
 - **Padrão**: Entrega at-least-once com acknowledgment manual
+- **Argumentos das Queues**:
+  ```python
+  {
+      "x-dead-letter-exchange": "document.dlx",
+      "x-dead-letter-routing-key": "document.upload.dlq",
+      "x-message-ttl": 86400000  # 24h TTL
+  }
+  ```
+- **Retry Policy**: Worker republica com header `x-retry-count` até 3 tentativas, depois `basic_nack(requeue=False)` → DLQ
 
 ### 4. Object Storage (MinIO)
 - **Bucket**: `documents`
@@ -88,6 +133,17 @@ O pipeline Enterprise RAG segue uma arquitetura inspirada em microservices, orie
   - HNSW em `embedding` (vector_cosine_ops)
   - GIN em `tsv` (coluna tsvector)
   - Índices compostos para consultas tenant/status
+
+### 6. Reverse Proxy (Nginx)
+- **Responsabilidade**: Terminação TLS, rate limiting por zona, roteamento `/grafana`
+- **Configurações**: `nginx/nginx.conf` (produção), `nginx/nginx.free.conf` (free tier, buffers otimizados)
+- **Zonas de Rate Limit**: `api_limit` (10r/s), `search_limit` (5r/s), `auth_limit` (5r/m)
+- **Security Headers**: HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+
+### 7. Stack de Monitoramento
+- **Prometheus**: Coleta métricas em `/metrics` (intervalo 15s, retenção 15d/1GB)
+- **Grafana**: Dashboards pré-provisionados em `grafana/dashboards/enterprise-rag.json`
+- **Dashboards incluídos**: Upload rate, Search latency (p50/p95/p99), Queue depth, Worker processing time, Error rate, Rate limited requests
 
 ## Fluxo de Dados & Estágios do Pipeline
 
@@ -586,7 +642,189 @@ volumes:
 3. **Configuration**: Infrastructure-as-code (Terraform/Ansible) for rapid rebuild
 4. **RPO/RTO**: Target <1 hour RPO, <4 hours RTO
 
-## Extensibility & Customization
+## Deploy Free Tier (Sem Custo)
+
+### Visão Geral
+O sistema foi projetado para rodar **100% grátis** em tiers gratuitos de cloud providers ou VMs locais, sem dependência de serviços pagos.
+
+### Opções de Deploy Gratuito
+
+| Provedor | Recursos Free Tier | Ideal Para |
+|----------|-------------------|------------|
+| **Oracle Cloud Always Free** | 4 ARM CPUs, 24 GB RAM, 200 GB disco | **Produção real** (recomendado) |
+| **AWS Free Tier** | 1 t2.micro (1 vCPU, 1 GB) por 12 meses | Testes temporários |
+| **Google Cloud Free Tier** | 1 e2-micro (2 vCPU, 1 GB) | Testes temporários |
+| **Azure Free Tier** | 1 B1S (1 vCPU, 1 GB) por 12 meses | Testes temporários |
+| **Local/On-premise** | Hardware próprio | Desenvolvimento/POC |
+
+### Stack Free Tier (`docker-compose.free.yml`)
+
+Otimizações para recursos limitados:
+- **PostgreSQL**: 2GB RAM, `shared_buffers=256MB`, `max_connections=100`
+- **RabbitMQ**: 512MB RAM
+- **MinIO**: 512MB RAM
+- **API**: 1GB RAM
+- **Worker**: 1.5GB RAM (escalável: `--scale worker=2`)
+- **Prometheus**: 512MB RAM, retenção 15d/1GB
+- **Grafana**: 256MB RAM
+- **Nginx**: 64MB RAM, buffers otimizados
+
+### Bootstrap Automatizado
+
+Script `scripts/bootstrap-free.sh` para VM Ubuntu:
+```bash
+# Como root na VM:
+curl -fsSL https://raw.githubusercontent.com/SEU_USUARIO/enterprise-rag/main/scripts/bootstrap-free.sh | sudo bash
+```
+
+O script executa:
+1. Instala Docker + Docker Compose
+2. Clona repositório
+3. Gera senhas fortes (`openssl rand`)
+4. Cria certificado self-signed (ou orienta Let's Encrypt/Cloudflare Tunnel)
+5. Deploy da stack completa
+6. Health checks de todos os serviços
+
+### SSL/TLS Gratuito
+
+| Opção | Como Funciona | Prós | Contras |
+|-------|---------------|------|---------|
+| **Cloudflare Tunnel** | `cloudflared` cria túnel para localhost | Grátis, sem abrir portas, DDoS protection, SSL automático | Requer conta Cloudflare |
+| **Let's Encrypt** | `certbot` emite certificado válido | Padrão da indústria, válido 90 dias | Precisa domínio + porta 80 aberta |
+| **Self-signed** | `openssl` gera certificado local | Imediato, sem dependências | Aviso de segurança no browser |
+
+**Recomendação**: Cloudflare Tunnel para produção, self-signed para testes.
+
+### Variáveis de Ambiente Free Tier (`.env.free`)
+
+```bash
+# Senhas geradas automaticamente pelo bootstrap
+POSTGRES_PASSWORD=senha_gerada_32_chars
+RABBITMQ_PASSWORD=senha_gerada_32_chars
+MINIO_ROOT_PASSWORD=senha_gerada_32_chars
+API_KEY=chave_gerada_64_chars_hex
+GRAFANA_PASSWORD=senha_gerada_16_chars
+```
+
+### Recursos Mínimos Recomendados
+
+| Recurso | Mínimo | Recomendado |
+|---------|--------|-------------|
+| CPU | 2 vCPU | 4 vCPU (ARM) |
+| RAM | 4 GB | 8-16 GB |
+| Disco | 20 GB | 50+ GB SSD |
+| Rede | 1 Gbps | 1+ Gbps |
+
+---
+
+## Testes & CI/CD
+
+### Estratégia de Testes
+
+| Tipo | Localização | Cobertura | Quando Rodar |
+|------|-------------|-----------|--------------|
+| **Unit Tests** | `tests/test_api.py`, `tests/test_worker.py` | ~85% | Todo commit (CI) |
+| **Integration Tests** | `tests/test_integration.py` | Pipeline completa | PR + nightly |
+| **Contract Tests** | `tests/test_api.py` (schemas) | API contracts | Todo commit |
+| **Load Tests** | `scripts/load-test.k6.js` (futuro) | Performance | Pré-release |
+
+### Testes Unitários
+
+**API (`tests/test_api.py`):**
+- Health endpoints (`/healthz`, `/readyz`)
+- Autenticação (401 sem API key, 200 com key válida)
+- CRUD documentos (upload, get, delete, reindex)
+- Busca (modos hybrid/lexical/vector, filtros)
+- Métricas Prometheus
+
+**Worker (`tests/test_worker.py`):**
+- Extração de texto (PDF, DOCX, HTML, TXT)
+- Chunking (tamanho, overlap, edge cases)
+- Embeddings (dimensão, tipo)
+- Dispatch de extratores por MIME type
+
+### Testes de Integração (`tests/test_integration.py`)
+
+Cenários cobertos:
+1. **Pipeline completa**: Upload → Worker processa → Busca retorna resultados
+2. **Idempotência**: Upload duplicado retorna documento existente (SHA-256)
+3. **Modos de busca**: hybrid, lexical, vector
+4. **Filtros**: tenant_id, datas, tags
+5. **Reindex**: Reset status + reprocessamento
+6. **Delete**: Remove MinIO + DB (cascata)
+
+### CI/CD Pipeline (`.github/workflows/ci.yml`)
+
+**Jobs paralelos:**
+1. **lint-and-type-check**: Ruff + MyPy
+2. **unit-tests**: PostgreSQL, RabbitMQ, MinIO containers (testcontainers)
+3. **integration-tests**: Pipeline completa com serviços reais
+4. **docker-build**: Build + smoke test das imagens
+5. **security-scan**: Trivy (vulnerabilidades) + pip-audit (dependências)
+6. **notify**: Falha → notificação (Slack/Teams/email)
+
+**Serviços de teste (GitHub Actions):**
+```yaml
+services:
+  postgres:
+    image: postgres:15
+    env: {POSTGRES_USER: raguser, POSTGRES_PASSWORD: ragpass, POSTGRES_DB: ragdb}
+    ports: ["5432:5432"]
+  rabbitmq:
+    image: rabbitmq:3-management
+    env: {RABBITMQ_DEFAULT_USER: raguser, RABBITMQ_DEFAULT_PASS: ragpass}
+    ports: ["5672:5672"]
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    env: {MINIO_ROOT_USER: minioadmin, MINIO_ROOT_PASSWORD: minioadmin}
+    ports: ["9000:9000"]
+```
+
+### Cobertura de Código
+
+```bash
+# Local
+pytest --cov=api --cov=worker --cov-report=html --cov-report=term-missing
+
+# CI: Codecov upload automático
+# Target: >80% coverage
+```
+
+### Comandos de Teste
+
+```bash
+# Instalar dependências de dev
+pip install -e ".[dev]"
+
+# Unit tests rápidos
+pytest tests/test_api.py tests/test_worker.py -v
+
+# Integration tests (requer serviços rodando)
+pytest tests/test_integration.py -v
+
+# Todos com cobertura
+pytest --cov=api --cov=worker --cov-report=html
+
+# Lint + type check
+ruff check api/ worker/ tests/
+mypy api/ worker/
+```
+
+### Quality Gates
+
+| Gate | Threshold | Ferramenta |
+|------|-----------|------------|
+| **Coverage** | >80% | pytest-cov |
+| **Lint** | 0 errors | Ruff |
+| **Type Check** | 0 errors | MyPy |
+| **Security** | 0 high/critical | Trivy + pip-audit |
+| **Build** | Success | Docker |
+| **Tests** | 100% pass | pytest |
+
+---
+
+## Extensibilidade & Customization
 
 ### Plugin Architecture Points
 1. **Text Extractors**:
@@ -729,33 +967,41 @@ volumes:
    - Resource exhaustion testing
 
 ## Future Roadmap
-### Phase 1: MVP Enhancements
-- [ ] Implement weighted RRF with configurable weights
-- [ ] Add sentence-aware chunking option
-- [ ] Add Prometheus metrics for business KPIs
-- [ ] Implement file type validation and virus scanning
-- [ ] Add API authentication (API keys/JWT)
 
-### Phase 2: Enterprise Features
-- [ ] Multi-tenancy with strict isolation
-- [ ] Role-Based Access Control (RBAC)
-- [ ] Audit logging and compliance reporting
-- [ ] Backup/restore automation scripts
-- [ ] Advanced search: faceted search, autocomplete
+### ✅ Phase 1: MVP Enhancements (CONCLUÍDO)
+- [x] Weighted RRF com pesos configuráveis (`api/search.py`)
+- [x] Prometheus metrics para business KPIs (`api/metrics.py`)
+- [x] API authentication (API keys) (`api/security.py`)
+- [x] Rate limiting (sliding window + token bucket) (`api/rate_limiter.py`)
+- [x] DLQ + Retry logic (RabbitMQ + Worker)
+- [x] File type validation (MIME allowlist)
+- [x] Backup/restore scripts (`scripts/backup.sh`, `scripts/restore.sh`)
 
-### Phase 3: Performance & Scale
-- [ ] GPU acceleration for embedding generation
-- [ ] Batch embedding processing
-- [ ] Read replicas for search queries
-- [ ] Sharding strategies for massive scale
+### ✅ Phase 2: Enterprise Features (CONCLUÍDO)
+- [x] Multi-tenancy (tenant_id em todos endpoints + isolamento DB)
+- [x] Backup/restore automation scripts
+- [x] Prometheus + Grafana monitoring stack
+- [x] TLS/SSL via nginx reverse proxy
+- [x] CI/CD pipeline (GitHub Actions)
+- [x] Free tier deployment otimizado
+
+### 🔄 Phase 3: Performance & Scale (EM ANDAMENTO / PLANEJADO)
+- [ ] GPU acceleration para embedding generation
+- [ ] Batch embedding processing (acumular chunks)
+- [ ] Read replicas para search queries
+- [ ] Sharding strategies para massive scale
 - [ ] Edge deployment options
+- [ ] Sentence-aware chunking (spaCy/NLTK)
+- [ ] Token-based chunking para LLM integration
 
-### Phase 4: Intelligence & UX
+### 🔮 Phase 4: Intelligence & UX (FUTURO)
 - [ ] Query understanding and expansion
-- [ ] Re-ranking with cross-encoders
+- [ ] Re-ranking com cross-encoders
 - [ ] Conversational search interface
-- [ ] Analytics dashboard on usage patterns
-- [ ] Automated metadata extraction and tagging
+- [ ] Analytics dashboard em padrões de uso
+- [ ] Automated metadata extraction e tagging
+- [ ] OAuth2/JWT + RBAC completo
+- [ ] Audit logging para compliance
 
 ## Conclusion
 
