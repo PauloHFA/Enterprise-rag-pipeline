@@ -172,10 +172,17 @@ def save_chunk(db_session, document_id: uuid.UUID, chunk_idx: int, page: Optiona
 
 # Message processing
 def process_document_message(ch, method, properties, body):
-    """Callback function to process a message from RabbitMQ."""
+    """Callback function to process a message from RabbitMQ with retry logic."""
+    max_retries = 3
+    retry_count = 0
+    
+    # Get retry count from message headers
+    if properties and properties.headers:
+        retry_count = properties.headers.get("x-retry-count", 0)
+    
     try:
         message = json.loads(body)
-        logger.info(f"Received message: {message}")
+        logger.info(f"Received message (attempt {retry_count + 1}): {message}")
         
         document_id = uuid.UUID(message["document_id"])
         tenant_id = message["tenant_id"]
@@ -197,7 +204,7 @@ def process_document_message(ch, method, properties, body):
         except S3Error as e:
             logger.error(f"Error downloading file from MinIO: {e}")
             update_document_status(db_session, document_id, "failed", str(e))
-            ch.basic_ack(delivery_tag=method.delivery_tag)
+            _handle_retry_or_dlq(ch, method, properties, body, retry_count, max_retries)
             return
         
         # Extract text
@@ -205,7 +212,7 @@ def process_document_message(ch, method, properties, body):
         if not text:
             logger.warning(f"No text extracted from document {document_id}")
             update_document_status(db_session, document_id, "failed", "No text extracted")
-            ch.basic_ack(delivery_tag=method.delivery_tag)
+            _handle_retry_or_dlq(ch, method, properties, body, retry_count, max_retries)
             return
         
         # Chunk text
@@ -218,13 +225,11 @@ def process_document_message(ch, method, properties, body):
             embedding = generate_embedding(chunk_text)
             
             # Save chunk to database
-            # Note: We are not storing page numbers in this simple chunker.
-            # We could enhance the chunker to track page numbers if needed.
             save_chunk(
                 db_session=db_session,
                 document_id=document_id,
                 chunk_idx=idx,
-                page=None,  # We don't have page information in this simple chunker
+                page=None,
                 content=chunk_text,
                 chunker_version="simple-character-chunker-v1",
                 embedding_model=EMBEDDING_MODEL_NAME,
@@ -239,14 +244,36 @@ def process_document_message(ch, method, properties, body):
         ch.basic_ack(delivery_tag=method.delivery_tag)
         
     except Exception as e:
-        logger.error(f"Error processing message: {e}", exc_info=True)
+        logger.error(f"Error processing message (attempt {retry_count + 1}): {e}", exc_info=True)
         # Update document status to failed if we have a document_id
         if 'document_id' in locals():
             db_session = SessionLocal()
             update_document_status(db_session, document_id, "failed", str(e))
-        # We still acknowledge the message to avoid requeueing the same problematic message
-        # In a production system, we might want to reject and requeue or send to a DLQ.
+        _handle_retry_or_dlq(ch, method, properties, body, retry_count, max_retries)
+
+
+def _handle_retry_or_dlq(ch, method, properties, body, retry_count: int, max_retries: int):
+    """Handle retry logic or send to DLQ."""
+    if retry_count < max_retries:
+        # Requeue with incremented retry count
+        new_headers = dict(properties.headers or {}) if properties else {}
+        new_headers["x-retry-count"] = retry_count + 1
+        
+        ch.basic_publish(
+            exchange="",
+            routing_key=method.routing_key,
+            body=body,
+            properties=pika.BasicProperties(
+                delivery_mode=2,  # persistent
+                headers=new_headers
+            )
+        )
+        logger.info(f"Requeued message for retry {retry_count + 1}/{max_retries}")
         ch.basic_ack(delivery_tag=method.delivery_tag)
+    else:
+        # Max retries exceeded - reject and let RabbitMQ route to DLQ
+        logger.error(f"Max retries ({max_retries}) exceeded, sending to DLQ")
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 def main():
     """Main function to start the worker."""

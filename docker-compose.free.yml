@@ -1,0 +1,302 @@
+version: '3.8'
+
+# ============================================
+# ENTERPRISE RAG - FREE TIER DEPLOYMENT
+# Otimizado para VMs com recursos limitados (ex: Oracle Always Free: 4 ARM CPU, 24GB RAM)
+# ============================================
+
+services:
+  # ----------------------------------------
+  # POSTGRESQL + PGVECTOR
+  # ----------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: rag-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-raguser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-ragdb}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    # Limites para free tier (ajuste conforme sua VM)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-raguser} -d ${POSTGRES_DB:-ragdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=128MB
+      -c work_mem=16MB
+      -c max_connections=100
+      -c random_page_cost=1.1
+
+  # ----------------------------------------
+  # RABBITMQ
+  # ----------------------------------------
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rag-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-raguser}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: /
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ----------------------------------------
+  # MINIO (S3-compatible)
+  # ----------------------------------------
+  minio:
+    image: minio/minio
+    container_name: rag-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ----------------------------------------
+  # API SERVICE (FastAPI)
+  # ----------------------------------------
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: rag-api
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-raguser}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ragdb}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-raguser}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET=documents
+      - MINIO_SECURE=false
+      - API_KEY=${API_KEY}
+      - EMBEDDING_MODEL_NAME=${EMBEDDING_MODEL_NAME:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-384}
+      - CHUNK_SIZE=${CHUNK_SIZE:-500}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-50}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-60}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ----------------------------------------
+  # WORKER SERVICE (pode escalar horizontalmente)
+  # ----------------------------------------
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: rag-worker
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-raguser}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ragdb}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-raguser}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET=documents
+      - MINIO_SECURE=false
+      - EMBEDDING_MODEL_NAME=${EMBEDDING_MODEL_NAME:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-384}
+      - CHUNK_SIZE=${CHUNK_SIZE:-500}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-50}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.5'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    # Para escalar workers: docker-compose -f docker-compose.free.yml up -d --scale worker=2
+
+  # ----------------------------------------
+  # PROMETHEUS (Métricas)
+  # ----------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: rag-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--storage.tsdb.retention.size=1GB'
+      - '--web.enable-lifecycle'
+
+  # ----------------------------------------
+  # GRAFANA (Dashboards)
+  # ----------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: rag-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # ----------------------------------------
+  # NGINX REVERSE PROXY (SSL Termination)
+  # ----------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: rag-nginx
+    volumes:
+      - ./nginx/nginx.free.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+      - grafana
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+        reservations:
+          memory: 16M
+          cpus: '0.05'
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:
+
+# ============================================
+# NETWORKS (isolamento opcional)
+# ============================================
+networks:
+  default:
+    name: rag-network
+    driver: bridge

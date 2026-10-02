@@ -20,20 +20,51 @@ class RabbitMQClient:
             await self.connection.close()
 
     async def setup_queues(self):
-        # Declare exchanges
+        # Declare dead letter exchange
+        dlx = await self.channel.declare_exchange(
+            "document.dlx", ExchangeType.DIRECT, durable=True
+        )
+        
+        # Declare DLQ queues
+        upload_dlq = await self.channel.declare_queue(
+            "document.upload.dlq", durable=True
+        )
+        reindex_dlq = await self.channel.declare_queue(
+            "document.reindex.dlq", durable=True
+        )
+        
+        # Bind DLQs to DLX
+        await upload_dlq.bind(dlx, routing_key="document.upload.dlq")
+        await reindex_dlq.bind(dlx, routing_key="document.reindex.dlq")
+        
+        # Declare main exchanges
         upload_exchange = await self.channel.declare_exchange(
             "document.upload", ExchangeType.DIRECT, durable=True
         )
         reindex_exchange = await self.channel.declare_exchange(
             "document.reindex", ExchangeType.DIRECT, durable=True
         )
-        # Declare queues
+        
+        # Declare main queues with DLX configuration
         upload_queue = await self.channel.declare_queue(
-            "document.upload.queue", durable=True
+            "document.upload.queue",
+            durable=True,
+            arguments={
+                "x-dead-letter-exchange": "document.dlx",
+                "x-dead-letter-routing-key": "document.upload.dlq",
+                "x-message-ttl": 86400000  # 24h TTL
+            }
         )
         reindex_queue = await self.channel.declare_queue(
-            "document.reindex.queue", durable=True
+            "document.reindex.queue",
+            durable=True,
+            arguments={
+                "x-dead-letter-exchange": "document.dlx",
+                "x-dead-letter-routing-key": "document.reindex.dlq",
+                "x-message-ttl": 86400000  # 24h TTL
+            }
         )
+        
         # Bind queues to exchanges
         await upload_queue.bind(upload_exchange, routing_key="document.upload")
         await reindex_queue.bind(reindex_exchange, routing_key="document.reindex")

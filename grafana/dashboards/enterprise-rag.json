@@ -1,0 +1,396 @@
+{
+    "dashboard": {
+        "title": "Enterprise RAG Pipeline",
+        "uid": "enterprise-rag",
+        "tags": [
+            "enterprise-rag",
+            "rag",
+            "pipeline"
+        ],
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+            "from": "now-1h",
+            "to": "now"
+        },
+        "panels": [
+            {
+                "id": 1,
+                "title": "Documents Uploaded (Rate)",
+                "type": "graph",
+                "gridPos": {
+                    "x": 0,
+                    "y": 0,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "rate(enterprise_rag_documents_uploaded_total[5m])",
+                        "legendFormat": "{{tenant_id}} - {{status}}",
+                        "refId": "A"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "format": "ops",
+                        "label": "Documents/sec"
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "xaxis": {
+                    "mode": "time"
+                }
+            },
+            {
+                "id": 2,
+                "title": "Documents Processed (Rate)",
+                "type": "graph",
+                "gridPos": {
+                    "x": 12,
+                    "y": 0,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "rate(enterprise_rag_documents_processed_total[5m])",
+                        "legendFormat": "{{tenant_id}} - {{status}}",
+                        "refId": "A"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "format": "ops",
+                        "label": "Documents/sec"
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "xaxis": {
+                    "mode": "time"
+                }
+            },
+            {
+                "id": 3,
+                "title": "Search Requests (Rate)",
+                "type": "graph",
+                "gridPos": {
+                    "x": 0,
+                    "y": 8,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "rate(enterprise_rag_search_requests_total[5m])",
+                        "legendFormat": "{{mode}} - {{status}}",
+                        "refId": "A"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "format": "ops",
+                        "label": "Requests/sec"
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "xaxis": {
+                    "mode": "time"
+                }
+            },
+            {
+                "id": 4,
+                "title": "Search Latency (p50, p95, p99)",
+                "type": "graph",
+                "gridPos": {
+                    "x": 12,
+                    "y": 8,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.50, rate(enterprise_rag_search_latency_seconds_bucket[5m]))",
+                        "legendFormat": "p50",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.95, rate(enterprise_rag_search_latency_seconds_bucket[5m]))",
+                        "legendFormat": "p95",
+                        "refId": "B"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.99, rate(enterprise_rag_search_latency_seconds_bucket[5m]))",
+                        "legendFormat": "p99",
+                        "refId": "C"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "format": "s",
+                        "label": "Latency (seconds)"
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "xaxis": {
+                    "mode": "time"
+                }
+            },
+            {
+                "id": 5,
+                "title": "Queue Depth",
+                "type": "graph",
+                "gridPos": {
+                    "x": 0,
+                    "y": 16,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "enterprise_rag_queue_depth",
+                        "legendFormat": "{{queue_name}}",
+                        "refId": "A"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "format": "short",
+                        "label": "Messages"
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "xaxis": {
+                    "mode": "time"
+                }
+            },
+            {
+                "id": 6,
+                "title": "Worker Processing Time by Stage",
+                "type": "graph",
+                "gridPos": {
+                    "x": 12,
+                    "y": 16,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "rate(enterprise_rag_worker_processing_seconds_sum[5m]) / rate(enterprise_rag_worker_processing_seconds_count[5m])",
+                        "legendFormat": "{{stage}} (avg)",
+                        "refId": "A"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "format": "s",
+                        "label": "Avg Time (seconds)"
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "xaxis": {
+                    "mode": "time"
+                }
+            },
+            {
+                "id": 7,
+                "title": "API Request Latency (p95)",
+                "type": "graph",
+                "gridPos": {
+                    "x": 0,
+                    "y": 24,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.95, rate(enterprise_rag_api_request_latency_seconds_bucket[5m]))",
+                        "legendFormat": "{{method}} {{endpoint}}",
+                        "refId": "A"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "format": "s",
+                        "label": "Latency (seconds)"
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "xaxis": {
+                    "mode": "time"
+                }
+            },
+            {
+                "id": 8,
+                "title": "API Error Rate",
+                "type": "graph",
+                "gridPos": {
+                    "x": 12,
+                    "y": 24,
+                    "w": 12,
+                    "h": 8
+                },
+                "targets": [
+                    {
+                        "expr": "rate(enterprise_rag_api_requests_total{status=~\"5..\"}[5m]) / rate(enterprise_rag_api_requests_total[5m])",
+                        "legendFormat": "{{method}} {{endpoint}}",
+                        "refId": "A"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "format": "percentunit",
+                        "label": "Error Rate"
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "xaxis": {
+                    "mode": "time"
+                }
+            },
+            {
+                "id": 9,
+                "title": "Active Workers",
+                "type": "stat",
+                "gridPos": {
+                    "x": 0,
+                    "y": 32,
+                    "w": 6,
+                    "h": 4
+                },
+                "targets": [
+                    {
+                        "expr": "enterprise_rag_worker_active",
+                        "refId": "A"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "short",
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": null
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 1
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 2
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 10,
+                "title": "Database Connections",
+                "type": "stat",
+                "gridPos": {
+                    "x": 6,
+                    "y": 32,
+                    "w": 6,
+                    "h": 4
+                },
+                "targets": [
+                    {
+                        "expr": "enterprise_rag_db_connections_active",
+                        "refId": "A"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "short"
+                    }
+                }
+            },
+            {
+                "id": 11,
+                "title": "Search Results Count (Avg)",
+                "type": "stat",
+                "gridPos": {
+                    "x": 12,
+                    "y": 32,
+                    "w": 6,
+                    "h": 4
+                },
+                "targets": [
+                    {
+                        "expr": "rate(enterprise_rag_search_results_count_sum[5m]) / rate(enterprise_rag_search_results_count_count[5m])",
+                        "refId": "A"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "short"
+                    }
+                }
+            },
+            {
+                "id": 12,
+                "title": "Rate Limited Requests",
+                "type": "graph",
+                "gridPos": {
+                    "x": 18,
+                    "y": 32,
+                    "w": 6,
+                    "h": 4
+                },
+                "targets": [
+                    {
+                        "expr": "rate(enterprise_rag_api_requests_total{status=\"429\"}[5m])",
+                        "legendFormat": "429 Rate Limited",
+                        "refId": "A"
+                    }
+                ],
+                "yAxes": [
+                    {
+                        "format": "ops",
+                        "label": "Requests/sec"
+                    },
+                    {
+                        "format": "short"
+                    }
+                ],
+                "xaxis": {
+                    "mode": "time"
+                }
+            }
+        ],
+        "templating": {
+            "list": [
+                {
+                    "name": "tenant",
+                    "type": "query",
+                    "query": "label_values(enterprise_rag_documents_uploaded_total, tenant_id)",
+                    "refresh": 1,
+                    "includeAll": true,
+                    "multi": true,
+                    "allValue": ".*"
+                }
+            ]
+        }
+    },
+    "overwrite": true
+}

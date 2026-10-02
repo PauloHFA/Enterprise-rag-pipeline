@@ -3,16 +3,20 @@ import uuid
 import json
 from typing import List, Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, BackgroundTasks, Security
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 from . import models, database
-from .schemas import DocumentCreate, DocumentResponse, ChunkResponse, SearchRequest, SearchResponse
+from .schemas import DocumentCreate, DocumentResponse, ChunkResponse, SearchRequest, SearchResponse, SearchResult
 from .minio_client import MinioClient
 from .rabbitmq_client import RabbitMQClient
 from .config import settings
 from .security import get_api_key
+from .rate_limiter import RateLimitMiddleware
 
 app = FastAPI(title="Enterprise RAG API", version="0.1.0")
+
+# Add rate limiting middleware
+app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.RATE_LIMIT_PER_MINUTE)
 
 # Dependency
 def get_db():
@@ -220,5 +224,5 @@ async def readiness_check():
 
 @app.get("/metrics")
 async def metrics():
-    # Placeholder for Prometheus metrics
-    return Response(content="# HELP enterprise_rag_info Information about the Enterprise RAG service\n# TYPE enterprise_rag_info gauge\nenterprise_rag_info{version=\"0.1.0\"} 1\n", media_type="text/plain")
+    from .metrics import get_metrics_response
+    return get_metrics_response()
