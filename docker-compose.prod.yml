@@ -29,6 +29,7 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - API_KEY=${API_KEY}
+      - TENANT_API_KEYS=${TENANT_API_KEYS:-}
       - EMBEDDING_MODEL_NAME=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
       - EMBEDDING_DIMENSION=384
       - RATE_LIMIT_PER_MINUTE=60

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List, Dict, Any
 import uuid
 from datetime import datetime
@@ -11,7 +11,7 @@ class DocumentBase(BaseModel):
     storage_key: str
     status: str
     error_detail: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict, validation_alias="metadata_")
 
 class DocumentCreate(DocumentBase):
     pass
@@ -19,10 +19,9 @@ class DocumentCreate(DocumentBase):
 class DocumentResponse(DocumentBase):
     id: uuid.UUID
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ChunkBase(BaseModel):
     document_id: uuid.UUID
@@ -37,15 +36,16 @@ class ChunkBase(BaseModel):
 class ChunkResponse(ChunkBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SearchRequest(BaseModel):
     query: str
-    top_k: int = Field(default=10, gt=0)
-    mode: str = Field(default="hybrid", regex="^(hybrid|lexical|vector)$")
+    top_k: int = Field(default=10, gt=0, le=100)
+    mode: str = Field(default="hybrid", pattern="^(hybrid|lexical|vector)$")
     filters: Optional[Dict[str, Any]] = None
-    rrf: Optional[Dict[str, Any]] = Field(default={"k": 60, "weights": {"lexical": 1.0, "vector": 1.0}})
+    rrf: Optional[Dict[str, Any]] = Field(
+        default_factory=lambda: {"k": 60, "weights": {"lexical": 1.0, "vector": 1.0}}
+    )
 
 class SearchResult(BaseModel):
     chunk_id: int

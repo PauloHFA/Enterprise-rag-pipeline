@@ -1,10 +1,11 @@
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 import json
 import time
 import numpy as np
 from sentence_transformers import SentenceTransformer
+from pgvector.sqlalchemy import Vector
 from .config import settings
 
 # Global embedding model (loaded once)
@@ -50,19 +51,19 @@ def hybrid_search(
     if weights is None:
         weights = {"lexical": 1.0, "vector": 1.0}
     
-    # Generate query embedding
-    query_embedding = generate_query_embedding(query_text)
+    query_embedding = generate_query_embedding(query_text) if mode != "lexical" else None
     
     # Build filter conditions for chunks table
     filter_conditions = []
     filter_params = {
         "qtext": query_text,
-        "qvec": query_embedding,
         "top_k": top_k,
         "rrf_k": rrf_k,
         "lexical_weight": weights.get("lexical", 1.0),
         "vector_weight": weights.get("vector", 1.0)
     }
+    if query_embedding is not None:
+        filter_params["qvec"] = query_embedding
     
     if filters:
         for key, value in filters.items():
@@ -138,7 +139,7 @@ def _vector_search(db: Session, filter_clause: str, params: Dict[str, Any]) -> L
         WHERE {filter_clause}
         ORDER BY c.embedding <=> :qvec
         LIMIT :top_k
-    """)
+    """).bindparams(bindparam("qvec", type_=Vector(settings.EMBEDDING_DIMENSION)))
     
     result = db.execute(sql, params)
     rows = result.fetchall()
@@ -189,15 +190,15 @@ def _hybrid_search_rrf(db: Session, filter_clause: str, params: Dict[str, Any]) 
             COALESCE(sem.document_id, lex.document_id) AS document_id,
             COALESCE(sem.page, lex.page) AS page,
             COALESCE(sem.content, lex.content) AS content,
-            COALESCE(:lexical_weight * 1.0 / (:rrf_k + sem.rnk), 0) + 
-            COALESCE(:vector_weight * 1.0 / (:rrf_k + lex.rnk), 0) AS score,
-            sem.rnk AS lexical_rank,
-            lex.rnk AS vector_rank
+            COALESCE(:lexical_weight * 1.0 / (:rrf_k + lex.rnk), 0) +
+            COALESCE(:vector_weight * 1.0 / (:rrf_k + sem.rnk), 0) AS score,
+            lex.rnk AS lexical_rank,
+            sem.rnk AS vector_rank
         FROM sem
         FULL OUTER JOIN lex ON sem.id = lex.id
         ORDER BY score DESC
         LIMIT :top_k
-    """)
+    """).bindparams(bindparam("qvec", type_=Vector(settings.EMBEDDING_DIMENSION)))
     
     result = db.execute(sql, params)
     rows = result.fetchall()

@@ -1,5 +1,6 @@
 import os
 import json
+import io
 import logging
 import uuid
 from typing import List, Dict, Any, Optional
@@ -16,7 +17,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from pgvector.sqlalchemy import Vector
-from models import Base, Document, Chunk  # We'll need to adjust the import based on our structure
+from .models import Base, Document, Chunk
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -52,13 +53,10 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Initialize embedding model
-embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+embedding_model = None
 
 # Ensure the bucket exists
 BUCKET_NAME = "documents"
-if not minio_client.bucket_exists(BUCKET_NAME):
-    minio_client.make_bucket(BUCKET_NAME)
-    logger.info(f"Created bucket {BUCKET_NAME}")
 
 # Text extraction functions
 def extract_text_from_pdf(file_content: bytes) -> str:
@@ -116,6 +114,8 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]
     This is a simple character-based chunker. For a more sophisticated chunker, we might use
     sentence or paragraph boundaries.
     """
+    if chunk_size <= 0 or overlap < 0 or overlap >= chunk_size:
+        raise ValueError("Require chunk_size > 0 and 0 <= overlap < chunk_size")
     if not text:
         return []
     
@@ -129,6 +129,8 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]
             end = text_length
         chunk = text[start:end]
         chunks.append(chunk)
+        if end == text_length:
+            break
         start += chunk_size - overlap  # Move start forward by (chunk_size - overlap)
     
     return chunks
@@ -136,6 +138,9 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]
 # Embedding generation
 def generate_embedding(text: str) -> List[float]:
     """Generate embedding for a given text using the sentence transformer model."""
+    global embedding_model
+    if embedding_model is None:
+        embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
     embedding = embedding_model.encode(text)
     # Ensure it's a list of floats
     return embedding.tolist()
@@ -168,7 +173,6 @@ def save_chunk(db_session, document_id: uuid.UUID, chunk_idx: int, page: Optiona
         embedding=embedding  # This will be stored as a vector
     )
     db_session.add(chunk)
-    db_session.commit()
 
 # Message processing
 def process_document_message(ch, method, properties, body):
@@ -179,6 +183,7 @@ def process_document_message(ch, method, properties, body):
     # Get retry count from message headers
     if properties and properties.headers:
         retry_count = properties.headers.get("x-retry-count", 0)
+    db_session = None
     
     try:
         message = json.loads(body)
@@ -218,23 +223,28 @@ def process_document_message(ch, method, properties, body):
         # Chunk text
         chunks = chunk_text(text)
         logger.info(f"Document {document_id} split into {len(chunks)} chunks")
+
+        chunk_records = [
+            (idx, chunk_content, generate_embedding(chunk_content))
+            for idx, chunk_content in enumerate(chunks)
+        ]
+        db_session.query(Chunk).filter(Chunk.document_id == document_id).delete(
+            synchronize_session=False
+        )
         
-        # Process each chunk
-        for idx, chunk_text in enumerate(chunks):
-            # Generate embedding
-            embedding = generate_embedding(chunk_text)
-            
-            # Save chunk to database
+        for idx, chunk_content, embedding in chunk_records:
             save_chunk(
                 db_session=db_session,
                 document_id=document_id,
                 chunk_idx=idx,
                 page=None,
-                content=chunk_text,
+                content=chunk_content,
                 chunker_version="simple-character-chunker-v1",
                 embedding_model=EMBEDDING_MODEL_NAME,
                 embedding=embedding
             )
+
+        db_session.commit()
         
         # Update document status to completed
         update_document_status(db_session, document_id, "completed")
@@ -246,10 +256,13 @@ def process_document_message(ch, method, properties, body):
     except Exception as e:
         logger.error(f"Error processing message (attempt {retry_count + 1}): {e}", exc_info=True)
         # Update document status to failed if we have a document_id
-        if 'document_id' in locals():
-            db_session = SessionLocal()
+        if 'document_id' in locals() and db_session is not None:
+            db_session.rollback()
             update_document_status(db_session, document_id, "failed", str(e))
         _handle_retry_or_dlq(ch, method, properties, body, retry_count, max_retries)
+    finally:
+        if db_session is not None:
+            db_session.close()
 
 
 def _handle_retry_or_dlq(ch, method, properties, body, retry_count: int, max_retries: int):
@@ -258,10 +271,21 @@ def _handle_retry_or_dlq(ch, method, properties, body, retry_count: int, max_ret
         # Requeue with incremented retry count
         new_headers = dict(properties.headers or {}) if properties else {}
         new_headers["x-retry-count"] = retry_count + 1
+
+        queue_names = {
+            "document.upload": "document.upload.queue",
+            "document.reindex": "document.reindex.queue",
+            "document.upload.queue": "document.upload.queue",
+            "document.reindex.queue": "document.reindex.queue",
+        }
+        queue_name = queue_names.get(method.routing_key)
+        if queue_name is None:
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+            return
         
         ch.basic_publish(
             exchange="",
-            routing_key=method.routing_key,
+            routing_key=queue_name,
             body=body,
             properties=pika.BasicProperties(
                 delivery_mode=2,  # persistent
@@ -278,14 +302,41 @@ def _handle_retry_or_dlq(ch, method, properties, body, retry_count: int, max_ret
 def main():
     """Main function to start the worker."""
     logger.info("Starting Enterprise RAG Worker")
+    if not minio_client.bucket_exists(BUCKET_NAME):
+        minio_client.make_bucket(BUCKET_NAME)
     
     # Connect to RabbitMQ
     connection = get_rabbitmq_connection()
     channel = connection.channel()
+    channel.basic_qos(prefetch_count=1)
     
-    # Declare the queues (they should already be declared by the API, but we do it here for safety)
-    channel.queue_declare(queue="document.upload.queue", durable=True)
-    channel.queue_declare(queue="document.reindex.queue", durable=True)
+    channel.exchange_declare(exchange="document.dlx", exchange_type="direct", durable=True)
+    channel.queue_declare(queue="document.upload.dlq", durable=True)
+    channel.queue_bind(
+        queue="document.upload.dlq", exchange="document.dlx", routing_key="document.upload.dlq"
+    )
+    channel.queue_declare(queue="document.reindex.dlq", durable=True)
+    channel.queue_bind(
+        queue="document.reindex.dlq", exchange="document.dlx", routing_key="document.reindex.dlq"
+    )
+    channel.queue_declare(
+        queue="document.upload.queue",
+        durable=True,
+        arguments={
+            "x-dead-letter-exchange": "document.dlx",
+            "x-dead-letter-routing-key": "document.upload.dlq",
+            "x-message-ttl": 86400000,
+        },
+    )
+    channel.queue_declare(
+        queue="document.reindex.queue",
+        durable=True,
+        arguments={
+            "x-dead-letter-exchange": "document.dlx",
+            "x-dead-letter-routing-key": "document.reindex.dlq",
+            "x-message-ttl": 86400000,
+        },
+    )
     
     # Set up consumer for both queues
     channel.basic_consume(queue="document.upload.queue", on_message_callback=process_document_message)

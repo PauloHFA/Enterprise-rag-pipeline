@@ -4,10 +4,11 @@ import asyncio
 import aio_pika
 from aio_pika import ExchangeType
 from typing import Callable, Awaitable
+from .config import settings
 
 class RabbitMQClient:
     def __init__(self):
-        self.url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672")
+        self.url = settings.RABBITMQ_URL
         self.connection = None
         self.channel = None
 
@@ -83,7 +84,7 @@ class RabbitMQClient:
         exchange = await self.channel.get_exchange(exchange_name)
         message_body = json.dumps(message).encode()
         await exchange.publish(
-            aio_pika.Message(body=message_body),
+            aio_pika.Message(body=message_body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
             routing_key=routing_key
         )
 

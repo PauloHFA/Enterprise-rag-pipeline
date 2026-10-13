@@ -30,7 +30,7 @@ export API_KEY=$(grep API_KEY .env | cut -d= -f2)
 curl -X POST "https://localhost/v1/documents" \
   -H "X-API-Key: $API_KEY" \
   -F "file=@document.pdf" \
-  -F "tenant_id=my-tenant"
+  -F "tenant_id=default"
 ```
 
 ### 🚀 Bootstrap Automatizado (VM Ubuntu)
@@ -52,7 +52,7 @@ docker-compose up -d
 curl -X POST "http://localhost:8000/v1/documents" \
   -H "X-API-Key: your-api-key" \
   -F "file=@document.pdf" \
-  -F "tenant_id=my-tenant"
+  -F "tenant_id=default"
 
 # Search
 curl -X POST "http://localhost:8000/v1/search" \
@@ -105,7 +105,7 @@ docker-compose -f docker-compose.prod.yml up -d
 - ✅ API Key authentication
 - ✅ Rate limiting (sliding window)
 - ✅ Dead Letter Queue (DLQ) for failed messages
-- ✅ Retry logic with exponential backoff
+- ✅ Bounded retry logic with retry count and DLQ routing
 - ✅ Comprehensive Prometheus metrics
 - ✅ Grafana dashboards
 - ✅ Backup/Restore scripts
@@ -113,6 +113,8 @@ docker-compose -f docker-compose.prod.yml up -d
 - ✅ CI/CD pipeline (GitHub Actions)
 
 ## Documentation
+
+See [docs/CORRECTION_ROADMAP.md](docs/CORRECTION_ROADMAP.md) for the current correction stages and acceptance criteria. Earlier completion labels in this README and the implementation plan are historical; production readiness still requires the checks in that roadmap.
 
 See [docs/ENTERPRISE_RAG_DOCUMENTATION.md](docs/ENTERPRISE_RAG_DOCUMENTATION.md) for comprehensive technical documentation (Português BR).
 
@@ -133,6 +135,7 @@ Key variables:
 - `MINIO_ENDPOINT` - MinIO/S3 endpoint
 - `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` - MinIO credentials
 - `API_KEY` - API authentication key (generate with `openssl rand -hex 32`)
+- `TENANT_API_KEYS` - optional JSON object mapping tenant IDs to API keys, e.g. `{"acme":"key-a"}`
 - `EMBEDDING_MODEL_NAME` - Sentence transformer model
 - `RATE_LIMIT_PER_MINUTE` - API rate limit
 
@@ -142,12 +145,14 @@ Key variables:
 
 ```bash
 # Install dev dependencies
-pip install -e ".[dev]"
+pip install -e ".[api,worker,dev]"
 
 # Run unit tests
 pytest tests/test_api.py tests/test_worker.py -v
 
 # Run integration tests (requires services)
+# Set RAG_E2E_URL=http://localhost:8000 and RAG_E2E_API_KEY to the running API key.
+# Uses real PostgreSQL, RabbitMQ, MinIO, worker and embeddings; skipped without these variables.
 pytest tests/test_integration.py -v
 
 # Run with coverage

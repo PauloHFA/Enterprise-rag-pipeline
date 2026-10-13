@@ -1,5 +1,7 @@
 # Enterprise RAG Pipeline - Plano de Implementação e Deploy
 
+> Estado atualizado e critérios de aceite: [CORRECTION_ROADMAP.md](docs/CORRECTION_ROADMAP.md). As listas abaixo são históricas e não comprovam conclusão nem prontidão para produção.
+
 ## 📋 Resumo Executivo
 
 Este documento detalha o estado atual da implementação, as lacunas para produção e um plano passo a passo para completar o deploy do sistema Enterprise RAG.

@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.firecrawl/
+*.egg-info/
+.env
+htmlcov/
+coverage.xml
+.coverage
+certs/

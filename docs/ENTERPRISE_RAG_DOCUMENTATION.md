@@ -301,7 +301,7 @@ POST /v1/documents
 Content-Type: multipart/form-data
 
 file: [binary file]
-tenant_id: "acme" (optional, defaults to "default")
+tenant_id: "acme" (optional; derived from the authenticated API key and rejected if it does not match)
 metadata: "{\"category\": \"legal\", \"department\": \"contracts\"}" (optional JSON string)
 ```
 
@@ -393,8 +393,8 @@ All messages exchanged via RabbitMQ follow a standardized envelope:
 ### Processing Guarantees
 - **At-least-once delivery**: Messages acknowledged after successful processing
 - **Idempotency**: Document status checks prevent duplicate work
-- **Error Handling**: Failed messages are acknowledged (to prevent infinite retry) but document status set to `failed` with error detail
-- **DLQ Pattern**: Not implemented in MVP but recommended for production (separate exchange/queue for failed messages after N attempts)
+- **Error Handling**: Failed messages update the document status and are retried up to three times
+- **DLQ Pattern**: After three attempts, `basic_nack(requeue=False)` routes the message to the queue-specific DLQ
 
 ## Chunking Strategy
 
@@ -506,14 +506,13 @@ Allows tuning importance of lexical vs vector search per use case.
    - SHA-256 of file content prevents duplicate processing
    - Critical for exactly-once semantics in presence of retries
 
-2. **Retry with Backoff**:
-   - Implemented at infrastructure level (Docker restart policies)
-   - Application-level: Worker acknowledges messages only after success
-   - Unacknowledged messages are redelivered by RabbitMQ
+2. **Bounded Retry**:
+  - Worker republishes messages with `x-retry-count` up to three times
+  - Exhausted messages are rejected and routed through the DLX to the matching DLQ
 
-3. **Dead Letter Queue (DLQ) Preparation**:
-   - Code structure supports DLQ (acknowledgment on failure)
-   - Production recommendation: Configure DLQ with retry count header
+3. **Dead Letter Queue (DLQ)**:
+  - Separate DLQ queues and bindings exist for upload and reindex messages
+  - Exhausted messages are routed to the corresponding DLQ
 
 4. **Backpressure Handling**:
    - Prefetch limits in RabbitMQ consumer (not shown but recommended)
@@ -898,10 +897,10 @@ mypy api/ worker/
 ## Security Considerations
 
 ### Authentication & Authorization
-- **Current**: No authentication (MVP assumption: trusted internal network)
+- **Current**: API keys are required. `TENANT_API_KEYS` maps keys to tenants; the legacy `API_KEY` is restricted to tenant `default`.
 - **Production Recommendations**:
   - API Gateway with OAuth2/JWT validation
-  - Tenant-based RBAC in API layer
+  - Expand tenant-based RBAC beyond the API-key-to-tenant mapping
   - Database row-level security (RLS) for tenant isolation
   - MinIO bucket policies per tenant
 

@@ -1,6 +1,4 @@
-from pydantic import BaseSettings, Field
-from typing import Optional, Dict, Any
-import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # API Settings
@@ -9,42 +7,41 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     
     # Security
-    API_KEY: str = Field(default="", env="API_KEY")
+    API_KEY: str = ""
+    TENANT_API_KEYS: str = ""
     
     # Database
-    DATABASE_URL: str = Field(default="postgresql://raguser:ragpass@localhost:5432/ragdb", env="DATABASE_URL")
+    DATABASE_URL: str = "postgresql://raguser:ragpass@localhost:5432/ragdb"
     
     # RabbitMQ
-    RABBITMQ_URL: str = Field(default="amqp://guest:guest@localhost:5672", env="RABBITMQ_URL")
+    RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672"
     
     # MinIO
-    MINIO_ENDPOINT: str = Field(default="localhost:9000", env="MINIO_ENDPOINT")
-    MINIO_ACCESS_KEY: str = Field(default="minioadmin", env="MINIO_ACCESS_KEY")
-    MINIO_SECRET_KEY: str = Field(default="minioadmin", env="MINIO_SECRET_KEY")
-    MINIO_SECURE: bool = Field(default=False, env="MINIO_SECURE")
-    MINIO_BUCKET: str = Field(default="documents", env="MINIO_BUCKET")
+    MINIO_ENDPOINT: str = "localhost:9000"
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_SECURE: bool = False
+    MINIO_BUCKET: str = "documents"
     
     # Embedding Model
-    EMBEDDING_MODEL_NAME: str = Field(default="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", env="EMBEDDING_MODEL_NAME")
-    EMBEDDING_DIMENSION: int = Field(default=384, env="EMBEDDING_DIMENSION")
+    EMBEDDING_MODEL_NAME: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    EMBEDDING_DIMENSION: int = 384
     
     # Worker Settings
-    CHUNK_SIZE: int = Field(default=500, env="CHUNK_SIZE")
-    CHUNK_OVERLAP: int = Field(default=50, env="CHUNK_OVERLAP")
+    CHUNK_SIZE: int = 500
+    CHUNK_OVERLAP: int = 50
     
     # Search Settings
-    SEARCH_DEFAULT_TOP_K: int = Field(default=10, env="SEARCH_DEFAULT_TOP_K")
-    SEARCH_MAX_TOP_K: int = Field(default=100, env="SEARCH_MAX_TOP_K")
-    RRF_K: int = Field(default=60, env="RRF_K")
+    SEARCH_DEFAULT_TOP_K: int = 10
+    SEARCH_MAX_TOP_K: int = 100
+    RRF_K: int = 60
     
     # Rate Limiting
-    RATE_LIMIT_PER_MINUTE: int = Field(default=60, env="RATE_LIMIT_PER_MINUTE")
+    RATE_LIMIT_PER_MINUTE: int = 60
     
     # Logging
-    LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
+    LOG_LEVEL: str = "INFO"
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
 settings = Settings()

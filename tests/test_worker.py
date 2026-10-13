@@ -2,9 +2,10 @@ import pytest
 import sys
 import os
 from unittest.mock import patch, MagicMock, mock_open
+import numpy as np
 
 # Add worker to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'worker'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from worker.worker import (
     extract_text_from_pdf,
@@ -95,7 +96,7 @@ class TestChunking:
         assert len(chunks) == 3
         assert len(chunks[0]) == 500
         assert len(chunks[1]) == 500
-        assert len(chunks[2]) == 50  # remainder
+        assert len(chunks[2]) == 100  # remaining text starts at offset 900
         
         # Check overlap
         assert chunks[0][-50:] == chunks[1][:50]
@@ -118,7 +119,7 @@ class TestChunking:
         assert chunks == []
     
     def test_chunk_text_overlap_zero(self):
-        text = "A" * 1000
+        text = "A" * 500 + "B" * 500
         chunks = chunk_text(text, chunk_size=500, overlap=0)
         assert len(chunks) == 2
         assert len(chunks[0]) == 500
@@ -133,7 +134,7 @@ class TestEmbeddingGeneration:
     @patch('worker.worker.embedding_model')
     def test_generate_embedding(self, mock_embedding_model):
         # Mock the sentence transformer model
-        mock_embedding_model.encode.return_value = [0.1] * 384
+        mock_embedding_model.encode.return_value = np.array([0.1] * 384)
         
         embedding = generate_embedding("test query")
         
@@ -144,7 +145,7 @@ class TestEmbeddingGeneration:
     
     @patch('worker.worker.embedding_model')
     def test_generate_embedding_empty_string(self, mock_embedding_model):
-        mock_embedding_model.encode.return_value = [0.0] * 384
+        mock_embedding_model.encode.return_value = np.array([0.0] * 384)
         
         embedding = generate_embedding("")
         
@@ -180,3 +181,31 @@ class TestDispatchExtractText:
     def test_extract_text_plain_dispatch(self):
         result = extract_text(b"Plain text", "text/plain")
         assert result == "Plain text"
+
+
+@pytest.mark.parametrize("size,overlap", [(0, 0), (500, 500), (500, -1)])
+def test_invalid_chunk_parameters(size, overlap):
+    with pytest.raises(ValueError):
+        chunk_text("text", size, overlap)
+
+
+@pytest.mark.parametrize("routing_key", ["document.upload", "document.upload.queue", "document.reindex", "document.reindex.queue"])
+def test_retry_preserves_destination_on_redelivery(routing_key):
+    from worker.worker import _handle_retry_or_dlq
+    channel = MagicMock()
+    method = MagicMock(delivery_tag=12, routing_key=routing_key)
+    properties = MagicMock(headers={"x-retry-count": 1})
+    _handle_retry_or_dlq(channel, method, properties, b"{}", 1, 3)
+    expected_queue = routing_key if routing_key.endswith(".queue") else routing_key + ".queue"
+    assert channel.basic_publish.call_args.kwargs["routing_key"] == expected_queue
+    assert channel.basic_publish.call_args.kwargs["properties"].headers["x-retry-count"] == 2
+    channel.basic_ack.assert_called_once_with(delivery_tag=12)
+
+
+def test_retry_limit_rejects_to_dlq():
+    from worker.worker import _handle_retry_or_dlq
+    channel = MagicMock()
+    method = MagicMock(delivery_tag=12)
+    _handle_retry_or_dlq(channel, method, None, b"{}", 3, 3)
+    channel.basic_nack.assert_called_once_with(delivery_tag=12, requeue=False)
+    channel.basic_publish.assert_not_called()

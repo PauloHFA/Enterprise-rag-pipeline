@@ -1,13 +1,15 @@
 from minio import Minio
 from minio.error import S3Error
 import os
+import io
+from .config import settings
 
 class MinioClient:
     def __init__(self):
-        self.endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
-        self.access_key = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-        self.secret_key = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-        self.secure = os.getenv("MINIO_SECURE", "false").lower() == "true"
+        self.endpoint = settings.MINIO_ENDPOINT
+        self.access_key = settings.MINIO_ACCESS_KEY
+        self.secret_key = settings.MINIO_SECRET_KEY
+        self.secure = settings.MINIO_SECURE
         self.client = Minio(
             self.endpoint,
             access_key=self.access_key,
@@ -15,7 +17,6 @@ class MinioClient:
             secure=self.secure
         )
         self.bucket_name = "documents"
-        self._ensure_bucket_exists()
 
     def _ensure_bucket_exists(self):
         try:
@@ -30,7 +31,7 @@ class MinioClient:
             self.client.put_object(
                 bucket_name=bucket_name,
                 object_name=object_name,
-                data=data,
+                data=io.BytesIO(data),
                 length=length,
                 content_type=content_type
             )

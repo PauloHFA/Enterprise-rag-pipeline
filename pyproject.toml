@@ -39,8 +39,11 @@ api = [
     "httpx==0.26.0",
     "prometheus-client==0.19.0",
     "pgvector==0.2.0",
-    "sentence-transformers==2.2.2",
+    "sentence-transformers==2.7.0",
+    "huggingface-hub==0.25.2",
+    "transformers==4.39.3",
     "numpy==1.26.4",
+    "torch==2.3.0",
 ]
 worker = [
     "pika==1.3.1",
@@ -49,7 +52,9 @@ worker = [
     "pymupdf==1.24.7",
     "python-docx==1.1.0",
     "beautifulsoup4==4.12.2",
-    "sentence-transformers==2.2.2",
+    "sentence-transformers==2.7.0",
+    "huggingface-hub==0.25.2",
+    "transformers==4.39.3",
     "torch==2.3.0",
     "numpy==1.26.4",
     "sqlalchemy==2.0.25",
@@ -111,9 +116,7 @@ ignore = [
     "E501",  # line too long (handled by line-length)
     "B008",  # function calls in default arguments
 ]
-per-file-ignores = {
-    "tests/*": ["S101"],  # allow assert in tests
-}
+per-file-ignores = {"tests/*" = ["S101"]}
 
 [tool.ruff.format]
 quote-style = "double"
