@@ -114,6 +114,8 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ## Documentation
 
+See [docs/RELIABLE_DELIVERY.md](docs/RELIABLE_DELIVERY.md) for transactional outbox, retry/DLQ recovery and storage cleanup. Run the `outbox` service together with the API and workers; document deletion removes the storage object eventually through durable cleanup.
+
 See [docs/CORRECTION_ROADMAP.md](docs/CORRECTION_ROADMAP.md) for the current correction stages and acceptance criteria. Earlier completion labels in this README and the implementation plan are historical; production readiness still requires the checks in that roadmap.
 
 See [docs/ENTERPRISE_RAG_DOCUMENTATION.md](docs/ENTERPRISE_RAG_DOCUMENTATION.md) for comprehensive technical documentation (Português BR).

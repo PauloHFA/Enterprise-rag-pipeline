@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 class Settings(BaseSettings):
     # API Settings
@@ -15,6 +16,10 @@ class Settings(BaseSettings):
     
     # RabbitMQ
     RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672"
+    OUTBOX_POLL_SECONDS: float = Field(default=1.0, gt=0)
+    OUTBOX_BATCH_SIZE: int = Field(default=20, gt=0)
+    OUTBOX_MAX_BACKOFF_SECONDS: int = Field(default=60, gt=0)
+    MESSAGE_RETRY_DELAYS_MS: str = '1000,5000,30000'
     
     # MinIO
     MINIO_ENDPOINT: str = "localhost:9000"

@@ -3,6 +3,7 @@ import json
 import io
 import logging
 import uuid
+import time
 from typing import List, Dict, Any, Optional
 import pika
 from minio import Minio
@@ -30,6 +31,9 @@ MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
 MINIO_SECURE = os.getenv("MINIO_SECURE", "false").lower() == "true"
 
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672")
+RETRY_DELAYS_MS = [int(value) for value in os.getenv('MESSAGE_RETRY_DELAYS_MS', '1000,5000,30000').split(',')]
+if not RETRY_DELAYS_MS or any(delay <= 0 for delay in RETRY_DELAYS_MS):
+    raise ValueError('Retry delays must be positive milliseconds')
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://raguser:ragpass@localhost:5432/ragdb")
 
@@ -46,10 +50,14 @@ minio_client = Minio(
 
 # Initialize RabbitMQ connection and channel
 def get_rabbitmq_connection():
-    return pika.BlockingConnection(pika.URLParameters(RABBITMQ_URL))
+    params = pika.URLParameters(RABBITMQ_URL)
+    params.heartbeat = 600
+    params.blocked_connection_timeout = 30
+    params.socket_timeout = 5
+    return pika.BlockingConnection(params)
 
 # Initialize database engine and session
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Initialize embedding model
@@ -175,98 +183,88 @@ def save_chunk(db_session, document_id: uuid.UUID, chunk_idx: int, page: Optiona
     db_session.add(chunk)
 
 # Message processing
+
 def process_document_message(ch, method, properties, body):
-    """Callback function to process a message from RabbitMQ with retry logic."""
-    max_retries = 3
+    """Serialize document mutations and atomically index one generation."""
     retry_count = 0
-    
-    # Get retry count from message headers
-    if properties and properties.headers:
-        retry_count = properties.headers.get("x-retry-count", 0)
     db_session = None
-    
+    lock_connection = None
+    document_id = None
+    document = None
+    generation = None
     try:
+        retry_count = int((properties.headers or {}).get("x-retry-count", 0)) if properties else 0
         message = json.loads(body)
-        logger.info(f"Received message (attempt {retry_count + 1}): {message}")
-        
         document_id = uuid.UUID(message["document_id"])
-        tenant_id = message["tenant_id"]
-        storage_key = message["storage_key"]
-        filename = message["filename"]
-        mime_type = message["mime_type"]
-        metadata = message.get("metadata", {})
-        
-        # Update status to processing
+        generation = int(message.get("generation", 1))
+        lock_connection = engine.connect()
+        lock_connection.execute(text("SELECT pg_advisory_lock(hashtextextended(:key, 0))"),
+                                {"key": f"document:{document_id}"})
+        lock_connection.commit()
         db_session = SessionLocal()
+        document = get_document_by_id(db_session, document_id)
+        if document is None:
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
+        if message["tenant_id"] != document.tenant_id:
+            raise ValueError("Message tenant does not match document")
+        if generation != document.generation or document.indexed_generation >= generation:
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
+        logger.info("Processing document %s generation %s attempt %s", document_id, generation, retry_count + 1)
         update_document_status(db_session, document_id, "processing")
-        
-        # Download file from MinIO
+        response = minio_client.get_object(BUCKET_NAME, document.storage_key)
         try:
-            response = minio_client.get_object(BUCKET_NAME, storage_key)
             file_content = response.read()
+        finally:
             response.close()
             response.release_conn()
-        except S3Error as e:
-            logger.error(f"Error downloading file from MinIO: {e}")
-            update_document_status(db_session, document_id, "failed", str(e))
-            _handle_retry_or_dlq(ch, method, properties, body, retry_count, max_retries)
-            return
-        
-        # Extract text
-        text = extract_text(file_content, mime_type)
-        if not text:
-            logger.warning(f"No text extracted from document {document_id}")
-            update_document_status(db_session, document_id, "failed", "No text extracted")
-            _handle_retry_or_dlq(ch, method, properties, body, retry_count, max_retries)
-            return
-        
-        # Chunk text
-        chunks = chunk_text(text)
-        logger.info(f"Document {document_id} split into {len(chunks)} chunks")
-
-        chunk_records = [
-            (idx, chunk_content, generate_embedding(chunk_content))
-            for idx, chunk_content in enumerate(chunks)
-        ]
-        db_session.query(Chunk).filter(Chunk.document_id == document_id).delete(
-            synchronize_session=False
-        )
-        
-        for idx, chunk_content, embedding in chunk_records:
-            save_chunk(
-                db_session=db_session,
-                document_id=document_id,
-                chunk_idx=idx,
-                page=None,
-                content=chunk_content,
-                chunker_version="simple-character-chunker-v1",
-                embedding_model=EMBEDDING_MODEL_NAME,
-                embedding=embedding
-            )
-
+        extracted = extract_text(file_content, document.mime_type)
+        if not extracted:
+            raise ValueError("No text extracted")
+        chunks = chunk_text(extracted)
+        chunk_records = [(idx, content, generate_embedding(content)) for idx, content in enumerate(chunks)]
+        db_session.query(Chunk).filter(Chunk.document_id == document_id).delete(synchronize_session=False)
+        for idx, content, embedding in chunk_records:
+            save_chunk(db_session, document_id, idx, None, content,
+                       "simple-character-chunker-v1", EMBEDDING_MODEL_NAME, embedding)
+        # Chunks and success marker commit together. A lost ACK only causes a harmless redelivery.
+        document.status = "completed"
+        document.error_detail = None
+        document.indexed_generation = generation
         db_session.commit()
-        
-        # Update document status to completed
-        update_document_status(db_session, document_id, "completed")
-        logger.info(f"Document {document_id} processed successfully")
-        
-        # Acknowledge the message
         ch.basic_ack(delivery_tag=method.delivery_tag)
-        
-    except Exception as e:
-        logger.error(f"Error processing message (attempt {retry_count + 1}): {e}", exc_info=True)
-        # Update document status to failed if we have a document_id
-        if 'document_id' in locals() and db_session is not None:
-            db_session.rollback()
-            update_document_status(db_session, document_id, "failed", str(e))
-        _handle_retry_or_dlq(ch, method, properties, body, retry_count, max_retries)
+    except Exception as exc:
+        logger.warning("Document %s processing failed (%s)", document_id, type(exc).__name__)
+        if db_session is not None:
+            try:
+                db_session.rollback()
+                current = get_document_by_id(db_session, document_id)
+                if current is not None and current.generation == generation and current.indexed_generation < generation:
+                    current.status = "failed"
+                    current.error_detail = type(exc).__name__ + ": processing failed"
+                    db_session.commit()
+            except Exception:
+                logger.warning("Could not persist failure status for %s", document_id)
+        _handle_retry_or_dlq(ch, method, properties, body, retry_count, len(RETRY_DELAYS_MS))
     finally:
         if db_session is not None:
             db_session.close()
+        if lock_connection is not None:
+            try:
+                lock_connection.execute(text("SELECT pg_advisory_unlock(hashtextextended(:key, 0))"),
+                                        {"key": f"document:{document_id}"})
+                lock_connection.commit()
+            except Exception:
+                # Never return a connection with an unreleased session lock to the pool.
+                lock_connection.invalidate()
+            finally:
+                lock_connection.close()
 
 
 def _handle_retry_or_dlq(ch, method, properties, body, retry_count: int, max_retries: int):
     """Handle retry logic or send to DLQ."""
+    retry_count = max(0, retry_count)
     if retry_count < max_retries:
         # Requeue with incremented retry count
         new_headers = dict(properties.headers or {}) if properties else {}
@@ -283,15 +281,19 @@ def _handle_retry_or_dlq(ch, method, properties, body, retry_count: int, max_ret
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
             return
         
-        ch.basic_publish(
-            exchange="",
-            routing_key=queue_name,
-            body=body,
-            properties=pika.BasicProperties(
-                delivery_mode=2,  # persistent
-                headers=new_headers
+        try:
+            ch.basic_publish(
+                exchange="", routing_key=f'{queue_name.removesuffix(".queue")}.retry.{retry_count + 1}',
+                body=body, mandatory=True,
+                properties=pika.BasicProperties(
+                    delivery_mode=2, headers=new_headers,
+                    message_id=properties.message_id if properties else None,
+                    content_type='application/json',
+                ),
             )
-        )
+        except Exception:
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+            raise
         logger.info(f"Requeued message for retry {retry_count + 1}/{max_retries}")
         ch.basic_ack(delivery_tag=method.delivery_tag)
     else:
@@ -299,56 +301,51 @@ def _handle_retry_or_dlq(ch, method, properties, body, retry_count: int, max_ret
         logger.error(f"Max retries ({max_retries}) exceeded, sending to DLQ")
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
-def main():
-    """Main function to start the worker."""
-    logger.info("Starting Enterprise RAG Worker")
+def consume_once():
     if not minio_client.bucket_exists(BUCKET_NAME):
         minio_client.make_bucket(BUCKET_NAME)
-    
-    # Connect to RabbitMQ
     connection = get_rabbitmq_connection()
-    channel = connection.channel()
-    channel.basic_qos(prefetch_count=1)
-    
-    channel.exchange_declare(exchange="document.dlx", exchange_type="direct", durable=True)
-    channel.queue_declare(queue="document.upload.dlq", durable=True)
-    channel.queue_bind(
-        queue="document.upload.dlq", exchange="document.dlx", routing_key="document.upload.dlq"
-    )
-    channel.queue_declare(queue="document.reindex.dlq", durable=True)
-    channel.queue_bind(
-        queue="document.reindex.dlq", exchange="document.dlx", routing_key="document.reindex.dlq"
-    )
-    channel.queue_declare(
-        queue="document.upload.queue",
-        durable=True,
-        arguments={
-            "x-dead-letter-exchange": "document.dlx",
-            "x-dead-letter-routing-key": "document.upload.dlq",
-            "x-message-ttl": 86400000,
-        },
-    )
-    channel.queue_declare(
-        queue="document.reindex.queue",
-        durable=True,
-        arguments={
-            "x-dead-letter-exchange": "document.dlx",
-            "x-dead-letter-routing-key": "document.reindex.dlq",
-            "x-message-ttl": 86400000,
-        },
-    )
-    
-    # Set up consumer for both queues
-    channel.basic_consume(queue="document.upload.queue", on_message_callback=process_document_message)
-    channel.basic_consume(queue="document.reindex.queue", on_message_callback=process_document_message)
-    
-    logger.info("Waiting for messages. To exit press CTRL+C")
     try:
+        channel = connection.channel()
+        channel.basic_qos(prefetch_count=1)
+        channel.confirm_delivery()
+        channel.exchange_declare(exchange="document.dlx", exchange_type="direct", durable=True)
+        for routing in ('document.upload', 'document.reindex'):
+            channel.exchange_declare(exchange=routing, exchange_type='direct', durable=True)
+            channel.queue_declare(queue=f'{routing}.dlq', durable=True)
+            channel.queue_bind(queue=f'{routing}.dlq', exchange='document.dlx', routing_key=f'{routing}.dlq')
+            channel.queue_declare(
+                queue=f'{routing}.queue', durable=True,
+                arguments={'x-dead-letter-exchange': 'document.dlx',
+                           'x-dead-letter-routing-key': f'{routing}.dlq', 'x-message-ttl': 86400000},
+            )
+            channel.queue_bind(queue=f'{routing}.queue', exchange=routing, routing_key=routing)
+            for attempt, delay in enumerate(RETRY_DELAYS_MS, 1):
+                channel.queue_declare(
+                    queue=f'{routing}.retry.{attempt}', durable=True,
+                    arguments={'x-message-ttl': delay, 'x-dead-letter-exchange': routing,
+                               'x-dead-letter-routing-key': routing},
+                )
+            channel.basic_consume(queue=f'{routing}.queue', on_message_callback=process_document_message)
+        logger.info('Waiting for document messages')
         channel.start_consuming()
-    except KeyboardInterrupt:
-        logger.info("Interrupted")
-        channel.stop_consuming()
-        connection.close()
+    finally:
+        if connection.is_open:
+            connection.close()
+
+
+def main():
+    delay = 1
+    while True:
+        try:
+            consume_once()
+            delay = 1
+        except KeyboardInterrupt:
+            return
+        except Exception as exc:
+            logger.warning('Worker reconnecting in %ss (%s)', delay, type(exc).__name__)
+            time.sleep(delay)
+            delay = min(delay * 2, 30)
 
 if __name__ == "__main__":
     main()

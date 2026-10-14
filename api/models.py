@@ -16,6 +16,8 @@ class Document(Base):
     sha256 = Column(String(64), nullable=False)
     storage_key = Column(String, nullable=False)
     status = Column(String, nullable=False, default='queued', index=True)
+    generation = Column(Integer, nullable=False, default=1, server_default='1')
+    indexed_generation = Column(Integer, nullable=False, default=0, server_default='0')
     error_detail = Column(Text, nullable=True)
     metadata_ = Column('metadata', JSONB, nullable=False, default=dict)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -24,6 +26,22 @@ class Document(Base):
     __table_args__ = (
         Index('documents_tenant_status', 'tenant_id', 'status'),
         UniqueConstraint('tenant_id', 'sha256', name='uq_documents_tenant_sha256'),
+    )
+
+class OutboxEvent(Base):
+    __tablename__ = 'outbox_events'
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id = Column(PG_UUID(as_uuid=True), ForeignKey('documents.id', ondelete='CASCADE'), nullable=True)
+    routing_key = Column(String, nullable=False)
+    payload = Column(JSONB, nullable=False)
+    attempts = Column(Integer, nullable=False, default=0, server_default='0')
+    next_attempt_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    published_at = Column(DateTime(timezone=True), nullable=True)
+    last_error = Column(Text, nullable=True)
+    __table_args__ = (
+        Index('outbox_pending', 'next_attempt_at', postgresql_where=published_at.is_(None)),
     )
 
 class Chunk(Base):

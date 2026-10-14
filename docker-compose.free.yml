@@ -82,7 +82,7 @@ services:
   # MINIO (S3-compatible)
   # ----------------------------------------
   minio:
-    image: minio/minio
+    build: ./minio
     container_name: rag-minio
     command: server /data --console-address ":9001"
     environment:
@@ -137,8 +137,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
       minio:
         condition: service_healthy
     ports:
@@ -153,7 +151,7 @@ services:
           memory: 256M
           cpus: '0.25'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -162,12 +160,32 @@ services:
   # ----------------------------------------
   # WORKER SERVICE (pode escalar horizontalmente)
   # ----------------------------------------
+  outbox:
+    build: ./api
+    command: ["python", "-m", "api.outbox"]
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-raguser}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ragdb}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-raguser}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET=documents
+      - MINIO_SECURE=false
+      - OUTBOX_POLL_SECONDS=${OUTBOX_POLL_SECONDS:-1}
+      - OUTBOX_BATCH_SIZE=${OUTBOX_BATCH_SIZE:-20}
+      - OUTBOX_MAX_BACKOFF_SECONDS=${OUTBOX_MAX_BACKOFF_SECONDS:-60}
+      - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
+    depends_on:
+      api:
+        condition: service_healthy
+
   worker:
     build:
       context: ./worker
       dockerfile: Dockerfile
-    container_name: rag-worker
     environment:
+      - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-raguser}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ragdb}
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-raguser}:${RABBITMQ_PASSWORD}@rabbitmq:5672
       - MINIO_ENDPOINT=minio:9000
@@ -182,11 +200,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - PYTHONUNBUFFERED=1
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      minio:
+      api:
         condition: service_healthy
     restart: unless-stopped
     deploy:

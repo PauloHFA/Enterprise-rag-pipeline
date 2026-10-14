@@ -13,8 +13,11 @@ class RabbitMQClient:
         self.channel = None
 
     async def connect(self):
-        self.connection = await aio_pika.connect_robust(self.url)
-        self.channel = await self.connection.channel()
+        if self.connection is not None:
+            await self.close()
+        self.connection = await aio_pika.connect_robust(self.url, timeout=5)
+        self.channel = await self.connection.channel(publisher_confirms=True, on_return_raises=True)
+        await self.setup_queues()
 
     async def close(self):
         if self.connection and not self.connection.is_closed:
@@ -69,9 +72,19 @@ class RabbitMQClient:
         # Bind queues to exchanges
         await upload_queue.bind(upload_exchange, routing_key="document.upload")
         await reindex_queue.bind(reindex_exchange, routing_key="document.reindex")
+        delays = [int(value) for value in settings.MESSAGE_RETRY_DELAYS_MS.split(',')]
+        if not delays or any(delay <= 0 for delay in delays):
+            raise ValueError('Retry delays must be positive milliseconds')
+        for routing in ('document.upload', 'document.reindex'):
+            for attempt, delay in enumerate(delays, 1):
+                await self.channel.declare_queue(
+                    f'{routing}.retry.{attempt}', durable=True,
+                    arguments={'x-message-ttl': delay, 'x-dead-letter-exchange': routing,
+                               'x-dead-letter-routing-key': routing},
+                )
 
     async def publish_message(self, routing_key: str, message: dict):
-        if not self.channel:
+        if not self.channel or self.channel.is_closed:
             await self.connect()
         # Determine exchange based on routing_key
         if routing_key == "document.upload":
@@ -84,8 +97,9 @@ class RabbitMQClient:
         exchange = await self.channel.get_exchange(exchange_name)
         message_body = json.dumps(message).encode()
         await exchange.publish(
-            aio_pika.Message(body=message_body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
-            routing_key=routing_key
+            aio_pika.Message(body=message_body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                             message_id=message.get('event_id'), content_type='application/json'),
+            routing_key=routing_key, mandatory=True, timeout=10,
         )
 
     async def consume_messages(self, routing_key: str, callback: Callable[[dict], Awaitable[None]]):

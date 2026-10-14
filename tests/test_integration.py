@@ -77,9 +77,16 @@ def test_upload_process_search_reindex_delete():
             assert client.get(f'/v1/documents/{doc_id}').status_code == 404
             assert count_rows('documents', 'id', doc_id) == 0
             assert count_rows('chunks', 'document_id', doc_id) == 0
-            with pytest.raises(S3Error) as deleted_object:
-                storage.stat_object('documents', storage_key)
-            assert deleted_object.value.code == 'NoSuchKey'
+            deadline = time.monotonic() + 30
+            while time.monotonic() < deadline:
+                try:
+                    storage.stat_object('documents', storage_key)
+                except S3Error as deleted_object:
+                    assert deleted_object.code == 'NoSuchKey'
+                    break
+                time.sleep(0.5)
+            else:
+                pytest.fail('Durable storage cleanup did not complete')
             results = client.post('/v1/search', json={'query': marker, 'mode': 'lexical'}).json()['results']
             assert all(hit['document_id'] != doc_id for hit in results)
         finally:

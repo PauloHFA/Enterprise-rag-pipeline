@@ -196,7 +196,7 @@ def test_retry_preserves_destination_on_redelivery(routing_key):
     method = MagicMock(delivery_tag=12, routing_key=routing_key)
     properties = MagicMock(headers={"x-retry-count": 1})
     _handle_retry_or_dlq(channel, method, properties, b"{}", 1, 3)
-    expected_queue = routing_key if routing_key.endswith(".queue") else routing_key + ".queue"
+    expected_queue = routing_key.removesuffix('.queue') + '.retry.2'
     assert channel.basic_publish.call_args.kwargs["routing_key"] == expected_queue
     assert channel.basic_publish.call_args.kwargs["properties"].headers["x-retry-count"] == 2
     channel.basic_ack.assert_called_once_with(delivery_tag=12)
@@ -209,3 +209,25 @@ def test_retry_limit_rejects_to_dlq():
     _handle_retry_or_dlq(channel, method, None, b"{}", 3, 3)
     channel.basic_nack.assert_called_once_with(delivery_tag=12, requeue=False)
     channel.basic_publish.assert_not_called()
+
+
+def test_negative_retry_header_cannot_loop_on_nonexistent_queue():
+    from worker.worker import _handle_retry_or_dlq
+    channel = MagicMock()
+    method = MagicMock(delivery_tag=12, routing_key='document.upload')
+    properties = MagicMock(headers={'x-retry-count': -1}, message_id='stable-id')
+    _handle_retry_or_dlq(channel, method, properties, b'{}', -1, 3)
+    assert channel.basic_publish.call_args.kwargs['routing_key'] == 'document.upload.retry.1'
+    assert channel.basic_publish.call_args.kwargs['properties'].message_id == 'stable-id'
+
+
+def test_retry_publish_failure_does_not_ack_original():
+    from worker.worker import _handle_retry_or_dlq
+    channel = MagicMock()
+    channel.basic_publish.side_effect = ConnectionError('broker unavailable')
+    method = MagicMock(delivery_tag=12, routing_key='document.upload')
+    properties = MagicMock(headers={}, message_id='stable-id')
+    with pytest.raises(ConnectionError):
+        _handle_retry_or_dlq(channel, method, properties, b'{}', 0, 3)
+    channel.basic_ack.assert_not_called()
+    channel.basic_nack.assert_called_once_with(delivery_tag=12, requeue=True)

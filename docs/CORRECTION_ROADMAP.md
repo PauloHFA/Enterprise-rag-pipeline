@@ -1,6 +1,6 @@
 # Plano de correção e implementação
 
-Revisão: 13/10/2026. Referência: PDF Documentacao_Plano_de_Acao_Enterprise_RAG,
+Revisão: 14/10/2026. Referência: PDF Documentacao_Plano_de_Acao_Enterprise_RAG,
 RF-01 a RF-10 e RNF-01 a RNF-08. Este plano substitui os estados de conclusão
 desatualizados do IMPLEMENTATION_PLAN.md; existência de código não comprova aceite.
 
@@ -29,7 +29,9 @@ modos de busca. Reindexação preserva quantidade de chunks; exclusão elimina
 documento, chunks e objeto. O teste real não substitui serviços nem embeddings por mocks.
 Não encerrar esta etapa como validada enquanto o teste com serviços não passar.
 
-## 2. Garantir confiabilidade — pendente
+## 2. Garantir confiabilidade — concluída e validada localmente
+
+Guia técnico e runbook: [RELIABLE_DELIVERY.md](RELIABLE_DELIVERY.md).
 
 - Outbox transacional e publicador recuperável; eliminar janela entre commit e evento.
 - Publisher confirms no retry; TTL/backoff em filas próprias, reconexão e ferramenta de replay DLQ.
@@ -118,5 +120,30 @@ nem todos os formatos. A cobertura inicial medida foi 62% antes dos novos casos
 de retry; a meta de 80% continua pendente. Os Compose prod/free ainda exigem
 a revisão da etapa 4, inclusive a imagem de storage e healthchecks.
 
-Próxima implementação: etapa 2, começando pela outbox transacional para que
-todo upload aceito tenha um evento recuperável mesmo após falha do broker/processo.
+## Resultado da etapa 2 — 14/10/2026
+
+- Outbox transacional para upload/reindexação, publicador separado com confirmações,
+  locks SKIP LOCKED, tentativas persistidas, backoff e IDs estáveis de evento.
+- Proteção por geração e lock por documento; chunks e sucesso confirmados juntos.
+- Exclusão lógica atômica com cleanup persistente; compensação de rollback de upload
+  e comando de reconciliação para resultados incertos entre storage e banco.
+- Retry com TTL 1/5/30s, quatro tentativas totais, confirmações antes do ACK,
+  reconexão do worker e replay limitado da DLQ.
+- 49 testes unitários aprovados. Medição de cobertura unitária: 62%; a meta de
+  80% permanece pendente. Os processos reais dos containers não entram nessa medição.
+- 7 testes reais aprovados (pipeline e seis cenários de resiliência): broker fora
+  com reinício da API, duas réplicas de worker/publicador, uploads/reindexações
+  concorrentes e reentrega sem trocar IDs de chunks, exclusão de job pendente,
+  DLQ/replay após restaurar o arquivo original, rollback de outbox com compensação
+  e interrupção do worker durante commit. Triggers de falha removidos ao final.
+- Após os ajustes finais de reconexão, pipeline e recuperação de outage revalidados.
+- Compose de desenvolvimento executado; configurações prod/free receberam o
+  publicador e ajustes de dependências/storage, mas não foram implantadas.
+- CI preparado para esses testes; execução remota depende do próximo commit/push.
+
+Limites: entrega é at-least-once; original excluído é removido eventualmente;
+reconciliação de órfãos não é automática; migrações reversíveis, métricas/alertas,
+segurança, benchmarks e validação completa de prod/free continuam nas etapas 4/5.
+
+Próxima implementação: etapa 3, extração com páginas/títulos, chunking semântico,
+embeddings em lote, estados por etapa e citações completas.

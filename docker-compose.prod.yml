@@ -37,8 +37,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
       minio:
         condition: service_healthy
     restart: unless-stopped
@@ -51,15 +49,34 @@ services:
           memory: 512M
           cpus: '0.5'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
 
   # Worker Service (scale horizontally)
+  outbox:
+    build: ./api
+    command: ["python", "-m", "api.outbox"]
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://raguser:ragpass@postgres:5432/ragdb
+      - RABBITMQ_URL=amqp://raguser:ragpass@rabbitmq:5672
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - OUTBOX_POLL_SECONDS=${OUTBOX_POLL_SECONDS:-1}
+      - OUTBOX_BATCH_SIZE=${OUTBOX_BATCH_SIZE:-20}
+      - OUTBOX_MAX_BACKOFF_SECONDS=${OUTBOX_MAX_BACKOFF_SECONDS:-60}
+      - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
+    depends_on:
+      api:
+        condition: service_healthy
+
   worker:
     build: ./worker
     environment:
+      - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
       - DATABASE_URL=postgresql://raguser:ragpass@postgres:5432/ragdb
       - RABBITMQ_URL=amqp://raguser:ragpass@rabbitmq:5672
       - MINIO_ENDPOINT=minio:9000
@@ -71,11 +88,7 @@ services:
       - CHUNK_OVERLAP=50
       - LOG_LEVEL=INFO
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      minio:
+      api:
         condition: service_healthy
     restart: unless-stopped
     deploy:
@@ -145,7 +158,7 @@ services:
 
   # MinIO Object Storage
   minio:
-    image: minio/minio
+    build: ./minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin

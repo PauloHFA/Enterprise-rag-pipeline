@@ -56,6 +56,10 @@ services:
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      - OUTBOX_POLL_SECONDS=${OUTBOX_POLL_SECONDS:-1}
+      - OUTBOX_BATCH_SIZE=${OUTBOX_BATCH_SIZE:-20}
+      - OUTBOX_MAX_BACKOFF_SECONDS=${OUTBOX_MAX_BACKOFF_SECONDS:-60}
+      - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
       - API_KEY=${API_KEY:-}
       - TENANT_API_KEYS=${TENANT_API_KEYS:-}
       - SENTENCE_TRANSFORMERS_HOME=/models
@@ -63,8 +67,6 @@ services:
       - embedding_models:/models
     depends_on:
       postgres:
-        condition: service_healthy
-      rabbitmq:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -76,8 +78,27 @@ services:
       timeout: 10s
       retries: 20
 
+  outbox:
+    build: ./api
+    command: ["python", "-m", "api.outbox"]
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://raguser:ragpass@postgres:5432/ragdb
+      - RABBITMQ_URL=amqp://raguser:ragpass@rabbitmq:5672
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - OUTBOX_POLL_SECONDS=${OUTBOX_POLL_SECONDS:-1}
+      - OUTBOX_BATCH_SIZE=${OUTBOX_BATCH_SIZE:-20}
+      - OUTBOX_MAX_BACKOFF_SECONDS=${OUTBOX_MAX_BACKOFF_SECONDS:-60}
+      - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
+    depends_on:
+      api:
+        condition: service_healthy
+
   worker:
     build: ./worker
+    restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql://raguser:ragpass@postgres:5432/ragdb
       - RABBITMQ_URL=amqp://raguser:ragpass@rabbitmq:5672
@@ -85,6 +106,7 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - SENTENCE_TRANSFORMERS_HOME=/models
+      - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
     volumes:
       - embedding_models:/models
     depends_on:

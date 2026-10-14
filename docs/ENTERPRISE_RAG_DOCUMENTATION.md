@@ -1,5 +1,9 @@
 # Enterprise RAG Pipeline - Documentação Técnica
 
+> Entrega confiável atualizada em 14/10/2026: [RELIABLE_DELIVERY.md](RELIABLE_DELIVERY.md).
+> Upload/reindexação usam outbox transacional e um publicador separado; o worker
+> protege gerações repetidas. A remoção do original após DELETE é eventual via cleanup.
+
 ## Visão Geral
 
 Este documento fornece uma análise técnica abrangente da implementação do pipeline Enterprise RAG (Retrieval-Augmented Generation). O sistema é projetado para ingestão e busca híbrida (léxica + vetorial) de documentos, escalável e resiliente, com arquitetura orientada a eventos.

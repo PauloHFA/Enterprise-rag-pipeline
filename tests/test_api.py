@@ -21,7 +21,7 @@ def services(monkeypatch):
     db = MagicMock()
     db.query.return_value.filter.return_value.first.return_value = None
     def refresh(doc):
-        doc.id = uuid.uuid4()
+        doc.id = doc.id or uuid.uuid4()
         doc.created_at = datetime.now(timezone.utc)
         doc.updated_at = doc.created_at
     db.refresh.side_effect = refresh
@@ -63,8 +63,13 @@ def test_upload_response_storage_and_event(client, services):
     assert result['status'] == 'queued'
     assert result['updated_at'] is not None
     assert storage.upload_file.call_args.kwargs['data'] == b'conteudo'
-    broker.publish_message.assert_awaited_once()
-    assert broker.publish_message.call_args.args[1]['document_id'] == result['id']
+    broker.publish_message.assert_not_awaited()
+    from api.models import OutboxEvent
+    events = [call.args[0] for call in db.add.call_args_list if isinstance(call.args[0], OutboxEvent)]
+    assert len(events) == 1
+    assert events[0].payload['document_id'] == result['id']
+    assert events[0].payload['generation'] == 1
+    db.commit.assert_called_once()
 
 
 @pytest.mark.parametrize('metadata', ['{', '[]', 'null', '12'])
@@ -124,3 +129,67 @@ def test_legacy_document_nullable_timestamp():
                           mime_type='text/plain', sha256='a'*64, storage_key='old.txt', status='queued',
                           error_detail=None, metadata_={}, created_at=datetime.now(timezone.utc), updated_at=None)
     assert DocumentResponse.model_validate(doc).updated_at is None
+
+
+def test_failed_upload_commit_compensates_storage(client, services):
+    from sqlalchemy.exc import SQLAlchemyError
+    db, storage, broker = services
+    db.commit.side_effect = SQLAlchemyError('failed transaction')
+    response = client.post('/v1/documents', files={'file': ('failed.txt', b'content', 'text/plain')},
+                           headers={'X-API-Key': 'test-key'})
+    assert response.status_code == 503
+    db.rollback.assert_called_once()
+    storage.delete_file.assert_called_once()
+    broker.publish_message.assert_not_awaited()
+
+
+def test_reindex_version_and_event_commit_together(client, services):
+    from api.models import Document, OutboxEvent
+    db, storage, broker = services
+    document = Document(id=uuid.uuid4(), generation=1, indexed_generation=1, tenant_id='default',
+                        status='completed', storage_key='original.txt', filename='original.txt',
+                        mime_type='text/plain', metadata_={})
+    db.query.return_value.filter.return_value.first.return_value = document
+    response = client.post(f'/v1/documents/{document.id}/reindex', headers={'X-API-Key': 'test-key'})
+    assert response.status_code == 202
+    assert document.generation == 2
+    event = db.add.call_args.args[0]
+    assert isinstance(event, OutboxEvent)
+    assert event.payload['generation'] == 2
+    assert event.routing_key == 'document.reindex'
+    db.commit.assert_called_once()
+    broker.publish_message.assert_not_awaited()
+
+
+def test_delete_schedules_cleanup_without_storage_dependency(client, services):
+    from api.models import Document
+    db, storage, broker = services
+    document = Document(id=uuid.uuid4(), tenant_id='default', storage_key='old.txt')
+    db.query.return_value.filter.return_value.first.return_value = document
+    response = client.delete(f'/v1/documents/{document.id}', headers={'X-API-Key': 'test-key'})
+    assert response.status_code == 204
+    event = db.add.call_args.args[0]
+    assert event.routing_key == 'storage.delete'
+    assert event.document_id is None
+    assert event.payload == {'storage_key': 'old.txt'}
+    storage.delete_file.assert_not_called()
+    db.delete.assert_called_once_with(document)
+    db.commit.assert_called_once()
+
+
+def test_ambiguous_commit_never_deletes_confirmed_original(client, services):
+    from sqlalchemy.exc import SQLAlchemyError
+    from api.models import Document
+    db, storage, broker = services
+    def interrupted_commit():
+        document = next(call.args[0] for call in db.add.call_args_list if isinstance(call.args[0], Document))
+        document.created_at = datetime.now(timezone.utc)
+        document.updated_at = document.created_at
+        db.query.return_value.filter.return_value.first.return_value = document
+        raise SQLAlchemyError('commit response lost')
+    db.commit.side_effect = interrupted_commit
+    response = client.post('/v1/documents', files={'file': ('confirmed.txt', b'content', 'text/plain')},
+                           headers={'X-API-Key': 'test-key'})
+    assert response.status_code == 202, response.text
+    storage.delete_file.assert_not_called()
+    broker.publish_message.assert_not_awaited()

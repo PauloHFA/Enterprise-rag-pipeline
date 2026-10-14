@@ -16,6 +16,8 @@ class Document(Base):
     sha256 = Column(String(64), nullable=False)
     storage_key = Column(String, nullable=False)
     status = Column(String, nullable=False, default='queued', index=True)
+    generation = Column(Integer, nullable=False, default=1, server_default='1')
+    indexed_generation = Column(Integer, nullable=False, default=0, server_default='0')
     error_detail = Column(Text, nullable=True)
     metadata_ = Column('metadata', JSONB, nullable=False, default=dict)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
