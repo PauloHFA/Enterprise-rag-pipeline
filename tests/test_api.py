@@ -193,3 +193,15 @@ def test_ambiguous_commit_never_deletes_confirmed_original(client, services):
     assert response.status_code == 202, response.text
     storage.delete_file.assert_not_called()
     broker.publish_message.assert_not_awaited()
+
+
+@pytest.mark.parametrize('body', [
+    {'query': ' '}, {'query': 'x', 'rrf': {'k': 0}}, {'query': 'x', 'rrf': {'k': True}},
+    {'query': 'x', 'rrf': {'weights': {'lexical': -1}}},
+    {'query': 'x', 'rrf': {'weights': {'lexical': 0, 'vector': 0}}},
+    {'query': 'x', 'filters': {'unknown': 'ignored previously'}},
+    {'query': 'x', 'filters': {'tags': ['']}},
+    {'query': 'x', 'filters': {'created_after': '2026-10-15T00:00:00Z', 'created_before': '2026-10-14T00:00:00Z'}},
+])
+def test_invalid_search_parameters_return_422(client, body):
+    assert client.post('/v1/search', json=body, headers={'X-API-Key': 'test-key'}).status_code == 422

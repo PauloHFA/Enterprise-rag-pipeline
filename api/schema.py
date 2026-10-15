@@ -1,16 +1,15 @@
-"""Additive upgrade for existing development databases; Alembic follows in stage 4."""
+"""Versioned migrations, serialized across replicas."""
+from pathlib import Path
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import text
-
-from . import database, models
+from . import database
 
 
 def initialize_schema():
+    config = Config()
+    config.set_main_option('script_location', str(Path(__file__).resolve().parents[1] / 'migrations'))
     with database.engine.begin() as connection:
-        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        connection.execute(text("CREATE EXTENSION IF NOT EXISTS btree_gin"))
-        # Serializes startup from multiple API replicas.
-        connection.execute(text("SELECT pg_advisory_xact_lock(71402002)"))
-        models.Base.metadata.create_all(bind=connection)
-        connection.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS generation INTEGER NOT NULL DEFAULT 1"))
-        connection.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS indexed_generation INTEGER NOT NULL DEFAULT 0"))
-        connection.execute(text("UPDATE documents SET indexed_generation = generation WHERE status = 'completed' AND indexed_generation = 0"))
+        connection.execute(text('SELECT pg_advisory_xact_lock(71402002)'))
+        config.attributes['connection'] = connection
+        command.upgrade(config, 'head')

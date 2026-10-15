@@ -14,6 +14,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.requests: Dict[str, List[float]] = defaultdict(list)
+        self.last_cleanup = 0.0
     
     async def dispatch(self, request: Request, call_next):
         # Skip rate limiting for health checks and metrics
@@ -21,11 +22,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         
         # Get client identifier (API key or IP)
-        api_key = request.headers.get("X-API-Key")
-        client_id = api_key or request.client.host if request.client else "unknown"
+        client_id = request.client.host if request.client else "unknown"
         
         now = time.time()
         minute_ago = now - 60
+        if now - self.last_cleanup > 60:
+            self.requests = defaultdict(list, {key: [value for value in values if value > minute_ago]
+                                               for key, values in self.requests.items() if values and values[-1] > minute_ago})
+            self.last_cleanup = now
+        if client_id not in self.requests and len(self.requests) >= 10000:
+            return JSONResponse(status_code=429, content={'detail': 'Rate limiter capacity reached'})
         
         # Clean old requests (sliding window)
         self.requests[client_id] = [t for t in self.requests[client_id] if t > minute_ago]

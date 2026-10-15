@@ -19,7 +19,7 @@ jobs:
           pip install torch==2.3.0 torchvision==0.18.0 --index-url https://download.pytorch.org/whl/cpu
           pip install -e '.[api,worker,dev]'
       - name: Run unit tests without network services
-        run: python -m pytest tests/test_api.py tests/test_worker.py tests/test_outbox.py -q
+        run: python -m pytest tests/test_api.py tests/test_worker.py tests/test_outbox.py tests/test_documents.py tests/test_security.py -q
       - uses: actions/upload-artifact@v4
         with:
           name: unit-coverage
@@ -31,7 +31,9 @@ jobs:
     timeout-minutes: 30
     env:
       API_KEY: ci-minimum-flow-key
-      TENANT_API_KEYS: ''
+      TENANT_API_KEYS: '{"acme":"ci-tenant-acme-key"}'
+      RAG_E2E_TENANT_KEY: ci-tenant-acme-key
+      RAG_MONITORING_URL: http://localhost:9090
       POSTGRES_PORT: '55432'
       RAG_E2E_DATABASE_URL: postgresql://raguser:ragpass@localhost:55432/ragdb
       RAG_E2E_URL: http://localhost:8000
@@ -39,18 +41,32 @@ jobs:
       RAG_E2E_TIMEOUT: '600'
       RAG_TEST_COMPOSE_PROJECT: enterprise-rag-ci
       COMPOSE_PROJECT_NAME: enterprise-rag-ci
+      OCR_ENABLED: 'true'
+      CHUNK_TARGET_TOKENS: '48'
+      CHUNK_OVERLAP_TOKENS: '6'
+      EMBEDDING_BATCH_SIZE: '2'
+      RATE_LIMIT_PER_MINUTE: '1000'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install pytest pytest-cov httpx==0.26.0 psycopg2-binary==2.9.9 minio==7.2.0 pika==1.3.1
+      - run: pip install pytest pytest-cov httpx==0.26.0 psycopg2-binary==2.9.9 minio==7.2.0 pika==1.3.1 pymupdf==1.24.7 python-docx==1.1.0 cryptography==50.0.2 prometheus-client==0.19.0
       - name: Build and start real infrastructure, API and worker
-        run: docker compose up -d --build --wait --wait-timeout 300
+        run: docker compose --profile monitoring up -d --build --wait --wait-timeout 300
       - name: Verify upload, indexing, three search modes, reindex and deletion
         run: python -m pytest tests/test_integration.py --no-cov -v
       - name: Verify broker outages, redelivery, concurrent jobs and DLQ replay
         run: python -m pytest tests/test_resilience.py --no-cov -v
+      - name: Verify source citations, document corpus, batching and OCR
+        run: python -m pytest tests/test_document_pipeline.py --no-cov -v
+      - name: Verify security, migrations, TLS, alerts, retention and restore
+        run: python -m pytest tests/test_operations.py --no-cov -v
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: document-corpus-measurements
+          path: .test-results/*.json
       - name: Show service logs
         if: always()
         run: docker compose logs --no-color --tail 150

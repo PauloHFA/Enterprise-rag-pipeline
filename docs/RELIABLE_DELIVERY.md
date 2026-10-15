@@ -1,5 +1,8 @@
 # Entrega confiável de documentos
 
+> Atualização da etapa 3: o terminal passou a `indexed`; páginas, seções e citações
+> seguem [DOCUMENT_PROCESSING.md](DOCUMENT_PROCESSING.md). As garantias abaixo permanecem.
+
 Implementação da etapa 2, iniciada em 14/10/2026. O transporte é **at-least-once**:
 mensagens podem repetir; a indexação de cada geração é idempotente.
 

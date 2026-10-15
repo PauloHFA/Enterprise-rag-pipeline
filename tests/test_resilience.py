@@ -43,7 +43,7 @@ def wait_until(predicate, timeout=120):
 
 
 def completed(client, doc_id):
-    return sql('SELECT status FROM documents WHERE id = %s', (doc_id,)) == [('completed',)]
+    return sql('SELECT status FROM documents WHERE id = %s', (doc_id,)) == [('indexed',)]
 
 
 @pytest.fixture

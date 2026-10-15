@@ -1,224 +1,247 @@
-version: '3.8'
-
 services:
-  # Reverse proxy with TLS termination
-  nginx:
-    image: nginx:alpine
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certs:/etc/nginx/certs:ro
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      - api
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # API Service
   api:
-    build: ./api
-    environment:
-      - DATABASE_URL=postgresql://raguser:ragpass@postgres:5432/ragdb
-      - RABBITMQ_URL=amqp://raguser:ragpass@rabbitmq:5672
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-      - API_KEY=${API_KEY}
-      - TENANT_API_KEYS=${TENANT_API_KEYS:-}
-      - EMBEDDING_MODEL_NAME=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
-      - EMBEDDING_DIMENSION=384
-      - RATE_LIMIT_PER_MINUTE=60
-      - LOG_LEVEL=INFO
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    cap_drop:
+    - ALL
     depends_on:
-      postgres:
-        condition: service_healthy
       minio:
         condition: service_healthy
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
+      model-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+    - DATABASE_URL=postgresql://raguser:${POSTGRES_PASSWORD}@postgres:5432/ragdb
+    - RABBITMQ_URL=amqp://raguser:${RABBITMQ_PASSWORD}@rabbitmq:5672
+    - MINIO_ENDPOINT=minio:9000
+    - MINIO_ACCESS_KEY=minioadmin
+    - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+    - OUTBOX_POLL_SECONDS=${OUTBOX_POLL_SECONDS:-1}
+    - OUTBOX_BATCH_SIZE=${OUTBOX_BATCH_SIZE:-20}
+    - OUTBOX_MAX_BACKOFF_SECONDS=${OUTBOX_MAX_BACKOFF_SECONDS:-60}
+    - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
+    - API_KEY=${API_KEY:?Set API_KEY}
+    - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-60}
+    - TENANT_API_KEYS=${TENANT_API_KEYS:-}
+    - SENTENCE_TRANSFORMERS_HOME=/models
+    - MAX_UPLOAD_BYTES=${MAX_UPLOAD_BYTES:-20971520}
+    - RETENTION_DAYS=${RETENTION_DAYS:-0}
+    - OUTBOX_RETENTION_DAYS=${OUTBOX_RETENTION_DAYS:-7}
+    - OIDC_ISSUER=${OIDC_ISSUER:-}
+    - OIDC_AUDIENCE=${OIDC_AUDIENCE:-}
+    - OIDC_JWKS_URL=${OIDC_JWKS_URL:-}
+    - OIDC_TENANT_CLAIM=${OIDC_TENANT_CLAIM:-tenant_id}
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz', timeout=5)"]
-      interval: 30s
+      interval: 5s
+      retries: 20
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz',
+        timeout=5)
       timeout: 10s
-      retries: 3
-
-  # Worker Service (scale horizontally)
-  outbox:
-    build: ./api
-    command: ["python", "-m", "api.outbox"]
-    restart: unless-stopped
-    environment:
-      - DATABASE_URL=postgresql://raguser:ragpass@postgres:5432/ragdb
-      - RABBITMQ_URL=amqp://raguser:ragpass@rabbitmq:5672
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-      - OUTBOX_POLL_SECONDS=${OUTBOX_POLL_SECONDS:-1}
-      - OUTBOX_BATCH_SIZE=${OUTBOX_BATCH_SIZE:-20}
-      - OUTBOX_MAX_BACKOFF_SECONDS=${OUTBOX_MAX_BACKOFF_SECONDS:-60}
-      - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
-    depends_on:
-      api:
-        condition: service_healthy
-
-  worker:
-    build: ./worker
-    environment:
-      - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
-      - DATABASE_URL=postgresql://raguser:ragpass@postgres:5432/ragdb
-      - RABBITMQ_URL=amqp://raguser:ragpass@rabbitmq:5672
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
-      - EMBEDDING_MODEL_NAME=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
-      - EMBEDDING_DIMENSION=384
-      - CHUNK_SIZE=500
-      - CHUNK_OVERLAP=50
-      - LOG_LEVEL=INFO
-    depends_on:
-      api:
-        condition: service_healthy
-    restart: unless-stopped
-    deploy:
-      replicas: 2
-      resources:
-        limits:
-          memory: 2G
-          cpus: '2'
-        reservations:
-          memory: 1G
-          cpus: '1'
-
-  # PostgreSQL with pgvector
-  postgres:
-    image: pgvector/pgvector:pg15
-    environment:
-      POSTGRES_USER: raguser
-      POSTGRES_PASSWORD: ragpass
-      POSTGRES_DB: ragdb
+    pids_limit: 128
+    read_only: true
+    security_opt:
+    - no-new-privileges:true
+    tmpfs:
+    - /tmp:rw,noexec,nosuid,size=256m
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
-    ports:
-      - "5432:5432"
-    restart: unless-stopped
+    - embedding_models:/models
     deploy:
       resources:
         limits:
           memory: 2G
           cpus: '1'
-        reservations:
-          memory: 1G
-          cpus: '0.5'
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U raguser -d ragdb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # RabbitMQ with management plugin
-  rabbitmq:
-    image: rabbitmq:3-management
-    environment:
-      RABBITMQ_DEFAULT_USER: raguser
-      RABBITMQ_DEFAULT_PASS: ragpass
-      RABBITMQ_DEFAULT_VHOST: /
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+          pids: 128
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # MinIO Object Storage
+  grafana:
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?Set GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    image: grafana/grafana:12.4.1
+    ports:
+    - 127.0.0.1:3000:3000
+    restart: unless-stopped
+    volumes:
+    - grafana_data:/var/lib/grafana
+    - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    - ./grafana/provisioning:/etc/grafana/provisioning/dashboards:ro
+    - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
   minio:
     build: ./minio
     command: server /data --console-address ":9001"
     environment:
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
       MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+    healthcheck:
+      interval: 5s
+      retries: 20
+      test:
+      - CMD
+      - curl
+      - -f
+      - http://localhost:9000/minio/health/live
+      timeout: 5s
     volumes:
-      - minio_data:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+    - minio_data:/data
+  model-init:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    command:
+    - chown
+    - -R
+    - 10001:10001
+    - /models
+    network_mode: none
+    restart: 'no'
+    user: 0:0
+    volumes:
+    - embedding_models:/models
+  outbox:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    cap_drop:
+    - ALL
+    command:
+    - python
+    - -m
+    - api.outbox
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+    - DATABASE_URL=postgresql://raguser:${POSTGRES_PASSWORD}@postgres:5432/ragdb
+    - RABBITMQ_URL=amqp://raguser:${RABBITMQ_PASSWORD}@rabbitmq:5672
+    - MINIO_ENDPOINT=minio:9000
+    - MINIO_ACCESS_KEY=minioadmin
+    - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+    - OUTBOX_POLL_SECONDS=${OUTBOX_POLL_SECONDS:-1}
+    - OUTBOX_BATCH_SIZE=${OUTBOX_BATCH_SIZE:-20}
+    - OUTBOX_MAX_BACKOFF_SECONDS=${OUTBOX_MAX_BACKOFF_SECONDS:-60}
+    - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
+    expose:
+    - '9102'
+    pids_limit: 128
+    read_only: true
     restart: unless-stopped
+    security_opt:
+    - no-new-privileges:true
+    tmpfs:
+    - /tmp:rw,noexec,nosuid,size=256m
     deploy:
       resources:
         limits:
           memory: 1G
           cpus: '1'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Prometheus for metrics collection
-  prometheus:
-    image: prom/prometheus:latest
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
-    restart: unless-stopped
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-
-  # Grafana for visualization
-  grafana:
-    image: grafana/grafana:latest
+          pids: 128
+  postgres:
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: "false"
+      POSTGRES_DB: ragdb
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_USER: raguser
+    healthcheck:
+      interval: 5s
+      retries: 20
+      test:
+      - CMD-SHELL
+      - pg_isready -U raguser -d ragdb
+      timeout: 5s
+    image: pgvector/pgvector:pg15
     volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    - postgres_data:/var/lib/postgresql/data
+  prometheus:
+    command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    - --storage.tsdb.retention.time=15d
+    - --storage.tsdb.retention.size=1GB
+    image: prom/prometheus:v3.10.0
     ports:
-      - "3000:3000"
-    depends_on:
-      - prometheus
+    - 127.0.0.1:9090:9090
     restart: unless-stopped
-
+    volumes:
+    - ./prometheus:/etc/prometheus:ro
+    - prometheus_data:/prometheus
+  rabbitmq:
+    environment:
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_USER: raguser
+    healthcheck:
+      interval: 5s
+      retries: 20
+      test:
+      - CMD
+      - rabbitmq-diagnostics
+      - check_running
+      timeout: 5s
+    image: rabbitmq:3-management
+    volumes:
+    - rabbitmq_data:/var/lib/rabbitmq
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    cap_drop:
+    - ALL
+    depends_on:
+      api:
+        condition: service_healthy
+      model-init:
+        condition: service_completed_successfully
+    environment:
+    - CHUNK_TARGET_TOKENS=${CHUNK_TARGET_TOKENS:-96}
+    - CHUNK_OVERLAP_TOKENS=${CHUNK_OVERLAP_TOKENS:-12}
+    - EMBEDDING_BATCH_SIZE=${EMBEDDING_BATCH_SIZE:-32}
+    - OCR_ENABLED=${OCR_ENABLED:-false}
+    - OCR_LANGUAGES=${OCR_LANGUAGES:-por+eng}
+    - DATABASE_URL=postgresql://raguser:${POSTGRES_PASSWORD}@postgres:5432/ragdb
+    - RABBITMQ_URL=amqp://raguser:${RABBITMQ_PASSWORD}@rabbitmq:5672
+    - MINIO_ENDPOINT=minio:9000
+    - MINIO_ACCESS_KEY=minioadmin
+    - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+    - SENTENCE_TRANSFORMERS_HOME=/models
+    - MESSAGE_RETRY_DELAYS_MS=${MESSAGE_RETRY_DELAYS_MS:-1000,5000,30000}
+    - WORKER_METRICS_PORT=9101
+    - EXTRACTION_TIMEOUT_SECONDS=${EXTRACTION_TIMEOUT_SECONDS:-120}
+    expose:
+    - '9101'
+    pids_limit: 128
+    read_only: true
+    restart: unless-stopped
+    security_opt:
+    - no-new-privileges:true
+    tmpfs:
+    - /tmp:rw,noexec,nosuid,size=256m
+    volumes:
+    - embedding_models:/models
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+          pids: 128
+      replicas: 2
+  nginx:
+    image: nginx:1.28-alpine
+    ports:
+    - 80:80
+    - 443:443
+    volumes:
+    - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
 volumes:
-  postgres_data:
-  rabbitmq_data:
-  minio_data:
-  prometheus_data:
-  grafana_data:
+  embedding_models: null
+  grafana_data: null
+  minio_data: null
+  postgres_data: null
+  prometheus_data: null
+  rabbitmq_data: null

@@ -16,7 +16,7 @@ class MinioClient:
             secret_key=self.secret_key,
             secure=self.secure
         )
-        self.bucket_name = "documents"
+        self.bucket_name = settings.MINIO_BUCKET
 
     def _ensure_bucket_exists(self):
         try:

@@ -4,49 +4,48 @@ A scalable, event-driven RAG (Retrieval-Augmented Generation) pipeline for enter
 
 ## Quick Start
 
-### 🆓 Free Tier Deployment (Recommended for Starting)
+### Free / production setup
 
-**100% grátis** - roda em qualquer VM (Oracle Always Free, AWS Free Tier, local, etc.)
+Use [Security and operations](docs/SECURITY_OPERATIONS.md) for credentials,
+trusted TLS certificates, migrations, monitoring and restore instructions.
+The standalone files target a Linux Docker host; cost depends on its provider.
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/SEU_USUARIO/enterprise-rag.git
+git clone git@github.com:PauloHFA/Enterprise-rag-pipeline.git enterprise-rag
 cd enterprise-rag
 
 # 2. Configure variáveis de ambiente
-cp .env.free .env
-# Edite .env e preencha os valores CHANGE_ME (ou rode o bootstrap que gera automaticamente)
+cp .env.free.example .env.production
+# Preencha todos os valores CHANGE_ME.
 
-# 3. Configure SSL (escolha uma opção):
-# Opção A: Cloudflare Tunnel (recomendado, grátis, sem abrir portas)
-# Opção B: Let's Encrypt (precisa domínio)
-# Opção C: Self-signed para teste (./scripts/bootstrap-free.sh faz isso)
+# 3. Forneça certificados confiáveis em certs/fullchain.pem e certs/privkey.pem.
 
 # 4. Deploy
-docker compose -f docker-compose.free.yml up -d
+docker compose --env-file .env.production -f docker-compose.free.yml up -d --build --wait
 
 # 5. Teste
-export API_KEY=$(grep API_KEY .env | cut -d= -f2)
-curl -X POST "https://localhost/v1/documents" \
+# Configure API_KEY no shell e use o domínio do certificado.
+curl -X POST "https://seu-dominio/v1/documents" \
   -H "X-API-Key: $API_KEY" \
   -F "file=@document.pdf" \
   -F "tenant_id=default"
 ```
 
-### 🚀 Bootstrap Automatizado (VM Ubuntu)
+### Bootstrap (Linux host)
 
 ```bash
-# Na VM como root:
-curl -fsSL https://raw.githubusercontent.com/SEU_USUARIO/enterprise-rag/main/scripts/bootstrap-free.sh | sudo bash
-# Ou clone primeiro e rode localmente:
-sudo ./scripts/bootstrap-free.sh
+# Docker Compose e OpenSSL devem estar instalados.
+# Valida ambiente/certificados e inicia os serviços; não instala dependências.
+bash scripts/bootstrap-free.sh .env.production
 ```
 
 ### 🔧 Development (Local)
 
 ```bash
-# Start all services (development)
-docker-compose up -d
+# Copy .env.example to .env and configure API_KEY first.
+# Add --profile monitoring to enable Prometheus/Grafana.
+docker compose up -d --build --wait
 
 # Upload a document
 curl -X POST "http://localhost:8000/v1/documents" \
@@ -114,6 +113,8 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ## Documentation
 
+See [docs/DOCUMENT_PROCESSING.md](docs/DOCUMENT_PROCESSING.md) for structured extraction, token-aware chunking, batched embeddings, OCR and source citations. The ingestion terminal status is now `indexed`; update clients that wait for `completed` and reindex older documents to populate provenance.
+
 See [docs/RELIABLE_DELIVERY.md](docs/RELIABLE_DELIVERY.md) for transactional outbox, retry/DLQ recovery and storage cleanup. Run the `outbox` service together with the API and workers; document deletion removes the storage object eventually through durable cleanup.
 
 See [docs/CORRECTION_ROADMAP.md](docs/CORRECTION_ROADMAP.md) for the current correction stages and acceptance criteria. Earlier completion labels in this README and the implementation plan are historical; production readiness still requires the checks in that roadmap.
@@ -171,87 +172,29 @@ ruff check api/ worker/ tests/
 mypy api/ worker/
 ```
 
-## Production Deployment
+## Production deployment and operations
 
-### 🆓 Free Tier Deployment (Single VM - Recommended Start)
+The standalone production Compose starts two workers; free starts one.
+Both require explicit passwords and trusted TLS certificates. Only Nginx 80/443
+is public; backend services stay on the Docker network. Grafana 3000 and
+Prometheus 9090 bind to loopback for SSH tunnel access. Public production
+deployment has not been exercised.
 
-**Zero custo** - roda em Oracle Always Free, AWS Free Tier, ou qualquer VM Linux.
+API docs are at `/docs`. The proxy blocks `/metrics`. Local monitoring starts
+with `docker compose --profile monitoring up -d`. Grafana uses admin and
+GRAFANA_PASSWORD (development default: local-monitoring-only). The repository
+provisions its datasource, dashboard and Prometheus alert rules.
 
-```bash
-# 1. Configure
-cp .env.free .env
-# Edite .env (ou use bootstrap que gera senhas)
+Alembic runs at API startup; API and worker share `shared/models.py`.
+Uploads default to 20 MiB, with content validation and extraction in a
+resource-limited subprocess. API keys and RS256 JWT/OIDC are supported.
 
-# 2. SSL (escolha uma):
-#    A) Cloudflare Tunnel (grátis, sem abrir portas)
-#    B) Let's Encrypt (precisa domínio)
-#    C) Self-signed para teste
-
-# 3. Deploy
-docker compose -f docker-compose.free.yml up -d
-
-# 4. Teste
-./scripts/test-deploy.sh
-```
-
-**Recursos mínimos recomendados:** 2 CPU, 4 GB RAM, 20 GB disco
-
-### 🏭 Production Deployment (Managed Services)
-
-### Prerequisites
-
-- Kubernetes cluster (AKS/EKS/GKE) or Azure Container Apps
-- Managed PostgreSQL with pgvector (RDS, Cloud SQL, Azure Database)
-- Managed RabbitMQ (CloudAMQP, Azure Service Bus) or HA cluster
-- Object Storage (S3, MinIO, Azure Blob)
-- TLS certificates (Let's Encrypt via cert-manager)
-- Monitoring stack (Prometheus + Grafana)
-
-### Deploy with Docker Compose (Single VM)
-
-```bash
-# Configure production values
-cp .env.example .env
-# Edit .env with production credentials
-
-# Deploy
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Deploy to Kubernetes
-
-```bash
-# Apply manifests (create from docker-compose or use Helm)
-kubectl apply -f k8s/
-
-# Or use Azure Container Apps
-az containerapp up --name enterprise-rag-api --resource-group my-rg --image myregistry/enterprise-rag-api:latest
-```
-
-### Monitoring
-
-#### Free Tier (via nginx proxy)
-- **API Docs**: https://seu-dominio/v1/docs
-- **Grafana**: https://seu-dominio/grafana (user: admin, senha no .env)
-- **Prometheus**: https://seu-dominio:9090 (rede interna apenas)
-
-#### Development (portas diretas)
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (admin/admin)
-- **RabbitMQ Management**: http://localhost:15672 (raguser/ragpass)
-- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
-
-### Backup & Restore
-
-```bash
-# Backup
-./scripts/backup.sh /mnt/backups
-
-# Restore
-./scripts/restore.sh /mnt/backups/20260929_120000.tar.gz
-```
-
-See [scripts/README.md](scripts/README.md) for details.
+Backup requires stopped writers and a persistent destination. Restore requires
+an isolated empty database/bucket. Follow the complete configuration, commands
+and recovery checks in [Security and operations](docs/SECURITY_OPERATIONS.md).
+[Operational scripts](scripts/README.md) wrap the same commands and fail when
+any required component is missing. Kubernetes and managed service adapters
+remain extensions.
 
 ## API Endpoints
 
@@ -275,3 +218,5 @@ See [scripts/README.md](scripts/README.md) for details.
 ## License
 
 MIT
+
+Security, migrations, observability and backup/restore: [stage 4](docs/SECURITY_OPERATIONS.md).

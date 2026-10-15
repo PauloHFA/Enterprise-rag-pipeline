@@ -41,7 +41,9 @@ Guia técnico e runbook: [RELIABLE_DELIVERY.md](RELIABLE_DELIVERY.md).
 Aceite: nenhum job aceito se perde; falhas transitórias se recuperam; mensagens
 inválidas chegam à DLQ após limite documentado; reentrega não duplica chunks.
 
-## 3. Completar recuperação documental — pendente
+## 3. Completar recuperação documental — concluída e validada localmente
+
+Guia técnico: [DOCUMENT_PROCESSING.md](DOCUMENT_PROCESSING.md).
 
 - Extração estruturada por página/seção, título e offsets; Markdown explícito e OCR opcional.
 - Chunking semântico/tokenizado, configuração de tamanho/overlap e versão da estratégia.
@@ -51,7 +53,9 @@ inválidas chegam à DLQ após limite documentado; reentrega não duplica chunks
 Aceite: corpus PDF/DOCX/HTML/TXT/MD preserva origem, citações e ordem; lotes
 medidos; parâmetros inválidos retornam erro de validação.
 
-## 4. Segurança e operação — pendente
+## 4. Segurança e operação — concluída e validada localmente
+
+Guia técnico e runbook: [SECURITY_OPERATIONS.md](SECURITY_OPERATIONS.md).
 
 - Limites de upload, detecção do tipo real e extratores sem privilégios.
 - Alembic com migrações versionadas; esquema compartilhado API/worker.
@@ -145,5 +149,77 @@ Limites: entrega é at-least-once; original excluído é removido eventualmente;
 reconciliação de órfãos não é automática; migrações reversíveis, métricas/alertas,
 segurança, benchmarks e validação completa de prod/free continuam nas etapas 4/5.
 
-Próxima implementação: etapa 3, extração com páginas/títulos, chunking semântico,
-embeddings em lote, estados por etapa e citações completas.
+## Resultado da etapa 3 — 14/10/2026
+
+- Extração por página/seção nos cinco formatos, com título, headings, tabelas e
+  offsets sobre texto normalizado; OCR opcional para scans com/sem rodapé textual.
+- Chunking limitado pelo tokenizer real e pela janela do modelo (128 tokens),
+  com sobreposição e contexto de título/seção sem alterar o conteúdo citado.
+- Embeddings em lote, validação de dimensão/finitude e medições por documento.
+- Estados queued/extracting/chunking/embedding/indexed/failed e histórico por geração.
+- Citações estruturadas nos três modos; filtros por tags/datas e RRF tipados.
+- 73 testes unitários aprovados; cobertura unitária global 68,1% (extração 96%,
+  chunking 91%). A meta global de 80% continua pendente.
+- 16 cenários reais aprovados: pipeline, seis testes de falha/concorrência da
+  etapa 2 e nove casos de corpus, incluindo hierarquia com níveis pulados e OCR.
+- No ensaio local, 100 chunks foram gerados em 50 lotes de 2, em cerca de 1,69s
+  na geração de embeddings. Isso exclui extração/OCR e carregamento do modelo;
+  não é benchmark de produção nem comprovação das metas p95.
+- Relatório completo: `.test-results/document-corpus.json`; CI publica o artifact.
+- Esquema aditivo e conversão do status legado completed para indexed verificados
+  no banco de desenvolvimento existente. Dados de teste e triggers temporários removidos.
+
+Limites: DOCX não tem paginação física inferida; offsets são do texto normalizado;
+OCR não garante reconhecimento de layouts complexos; títulos/posições de chunks
+antigos exigem reindexação; migrações reversíveis e deploy de prod/free continuam
+na etapa 4. Execução remota do CI aguarda o próximo commit/push.
+
+## Resultado da etapa 4 — 14/10/2026
+
+- Upload limitado antes do parser, inclusive sem Content-Length; conferência de
+  extensão/MIME/conteúdo e limite de expansão DOCX. Extração em subprocesso com
+  timeout/limites de recursos; runtime UID 10001, sem capabilities e filesystem
+  somente leitura. Nomes não escolhem diretórios de storage.
+- API/worker compartilham shared/models.py. Alembic versiona baseline e evolução,
+  serializa inicialização concorrente, adota esquema legado e normaliza título
+  TEXT/VARCHAR. Upgrade novo, downgrade, adoção com dados e alembic check passaram.
+  Template de nova revisão gerado e compilado no diretório temporário de testes.
+- JWT RS256 com assinatura/issuer/audience/exp/claims obrigatórios, JWKS HTTPS e
+  cache; API keys preservadas. Testes verificam tokens inválidos, configuração
+  ambígua, indisponibilidade do provedor e isolamento de UUID/buscas/deduplicação.
+- Métricas instrumentadas e coletadas de API, worker e publicador; dashboard
+  provisionado no Grafana e regras validadas com promtool. Alerta de worker
+  indisponível disparou e recuperou em teste. Logs JSON e traceparent foram
+  correlacionados entre resposta HTTP, outbox e worker.
+- Compose prod/free revisados: credenciais explícitas, backend sem host ports,
+  monitoramento em loopback, TLS no Nginx e workers/publicadores escaláveis.
+  Proxy HTTPS foi exercitado com certificado temporário confiado pelo cliente;
+  métricas públicas foram bloqueadas. Configurações prod/free passaram no config.
+- API com modelo carregado chegou a aproximadamente 1,04 GiB no ensaio local;
+  limite de produção/free aumentado de 1 para 2 GiB. Isso não é benchmark.
+- Backup completo com dump PostgreSQL major 15, objetos, manifesto/checksums e
+  recusa de componentes ausentes. Restore comprovado em banco/bucket/vhost
+  separados: contagens e hashes conferidos, três buscas respondendo e documento
+  que estava na fila voltou a ser indexado via recuperação da outbox.
+- Retenção remove somente documentos expirados, com lock e cleanup persistente;
+  outbox pendente não é purgada. Arquivos .env locais são ignorados; o template
+  de produção/free é .env.free.example. Os arquivos locais existentes foram preservados.
+- 106 testes unitários aprovados; cobertura api/worker 64,2%, segurança 90% e
+  uploads 89%. Processos reais em containers não entram nessa cobertura; a meta
+  de 80% e a ampliação da instrumentação de cobertura seguem para a etapa 5.
+- 23 cenários reais aprovados em rodadas locais: pipeline mínimo, nove casos de
+  corpus/OCR, seis testes de falha/concorrência e sete testes operacionais.
+  Relatórios locais em .test-results, com publicação de artifacts preparada no CI.
+- git diff --check, compilação Python, configurações Compose e template Alembic
+  verificados. Recursos do restore e certificados temporários removidos pelo teste.
+
+Limites: implantação pública de prod/free não executada; requer credenciais,
+domínio e certificados reais. OIDC foi validado com assinaturas reais em testes,
+com transporte JWKS substituído no unitário; nenhum provedor externo foi conectado.
+Tracing é correlação W3C/logs, sem exportador externo de spans. Alertas estão no
+Prometheus, sem receiver externo configurado. Retenção exige agendamento explícito;
+backup exige escritores parados e restore exige destino vazio. Windows aplica
+timeout de extração; limites resource são do Linux. CI remoto aguarda commit/push.
+
+Próxima implementação: etapa 5, avaliação de recuperação, benchmarks, cobertura
+dos módulos de domínio, gates de CI e fechamento dos critérios de aceite.

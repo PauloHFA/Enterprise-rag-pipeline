@@ -18,7 +18,7 @@ def wait_for_completion(client, doc_id):
         response.raise_for_status()
         document = response.json()
         assert document['status'] != 'failed', document.get('error_detail')
-        if document['status'] == 'completed':
+        if document['status'] == 'indexed':
             return document
         time.sleep(1)
     pytest.fail(f'Document {doc_id} did not complete within the configured timeout')

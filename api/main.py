@@ -3,6 +3,8 @@ import uuid
 import json
 import time
 import logging
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, Security
 from fastapi.responses import JSONResponse, Response
@@ -18,13 +20,31 @@ from .security import get_tenant_id
 from .rate_limiter import RateLimitMiddleware
 from .outbox import enqueue_document, enqueue_storage_delete
 from .schema import initialize_schema
+from .uploads import UploadLimitMiddleware, validate_upload
+from . import metrics
+from .observability import ObservabilityMiddleware
+from shared.telemetry import configure_logging
+
+configure_logging()
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Enterprise RAG API", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app):
+    from .security import validate_auth_configuration
+    validate_auth_configuration()
+    minio_client._ensure_bucket_exists()
+    initialize_schema()
+    yield
+    await rabbitmq_client.close()
+
+
+app = FastAPI(title="Enterprise RAG API", version="0.1.0", lifespan=lifespan)
 
 # Add rate limiting middleware
 app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.RATE_LIMIT_PER_MINUTE)
+app.add_middleware(UploadLimitMiddleware)
+app.add_middleware(ObservabilityMiddleware)
 
 # Dependency
 def get_db():
@@ -37,15 +57,6 @@ def get_db():
 # Initialize clients
 minio_client = MinioClient()
 rabbitmq_client = RabbitMQClient()
-
-@app.on_event("startup")
-async def startup_event():
-    minio_client._ensure_bucket_exists()
-    initialize_schema()
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    await rabbitmq_client.close()
 
 @app.post("/v1/documents", response_model=DocumentResponse, status_code=202)
 def upload_document(
@@ -60,7 +71,8 @@ def upload_document(
     tenant_id = authenticated_tenant_id
 
     # Read file content
-    content = file.file.read()
+    content = file.file.read(settings.MAX_UPLOAD_BYTES + 1)
+    filename, mime_type = validate_upload(content, file.filename, file.content_type)
     file_size = len(content)
     
     # Calculate SHA-256
@@ -88,23 +100,25 @@ def upload_document(
             raise HTTPException(status_code=400, detail="Metadata must be a JSON object")
 
     # Determine storage key
-    storage_key = f"{tenant_id}/{uuid.uuid4()}_{file.filename}"
+    storage_key = f"{tenant_id}/{uuid.uuid4()}_{filename}"
     
     # Upload to MinIO
     minio_client.upload_file(
-        bucket_name="documents",
+        bucket_name=settings.MINIO_BUCKET,
         object_name=storage_key,
         data=content,
         length=file_size,
-        content_type=file.content_type
+        content_type=mime_type
     )
     
     # Create document record
     db_document = models.Document(
         id=uuid.uuid4(), generation=1, indexed_generation=0,
+        extraction_metadata={}, processing_history=[{'status': 'queued', 'generation': 1,
+                                                      'at': datetime.now(timezone.utc).isoformat()}],
         tenant_id=tenant_id,
-        filename=file.filename,
-        mime_type=file.content_type,
+        filename=filename,
+        mime_type=mime_type,
         sha256=sha256_hash,
         storage_key=storage_key,
         status="queued",
@@ -136,6 +150,7 @@ def upload_document(
             return committed
         raise HTTPException(status_code=503, detail='Upload could not be saved; retry the same file') from exc
     db.refresh(db_document)
+    metrics.record_document_upload('all', 'accepted')
     
     return db_document
 
@@ -171,6 +186,7 @@ def delete_document(
     enqueue_storage_delete(db, document.storage_key)
     db.delete(document)
     db.commit()
+    metrics.record_document_deleted('all')
     return Response(status_code=204)
 
 @app.post("/v1/documents/{document_id}/reindex", status_code=202)
@@ -191,8 +207,11 @@ def reindex_document(
     document.status = "queued"
     document.error_detail = None
     document.generation += 1
+    document.processing_history = [{'status': 'queued', 'generation': document.generation,
+                                    'at': datetime.now(timezone.utc).isoformat()}]
     enqueue_document(db, document, 'document.reindex')
     db.commit()
+    metrics.record_document_reindexed('all', 'accepted')
     
     return JSONResponse(status_code=202, content={"message": "Reindexing started"})
 
@@ -206,24 +225,29 @@ async def search_documents(
     
     start_time = time.time()
 
-    filters = dict(search_request.filters or {})
+    filters = search_request.filters.model_dump(exclude_none=True) if search_request.filters else {}
     requested_tenant_id = filters.get("tenant_id")
     if requested_tenant_id is not None and requested_tenant_id != authenticated_tenant_id:
         raise HTTPException(status_code=403, detail="Tenant access denied")
     filters["tenant_id"] = authenticated_tenant_id
     
     # Perform hybrid search
-    results = hybrid_search(
-        db=db,
-        query_text=search_request.query,
-        top_k=search_request.top_k,
-        mode=search_request.mode,
-        filters=filters,
-        rrf_k=search_request.rrf.get("k", 60) if search_request.rrf else 60,
-        weights=search_request.rrf.get("weights", {"lexical": 1.0, "vector": 1.0}) if search_request.rrf else {"lexical": 1.0, "vector": 1.0}
-    )
-    
+    try:
+        results = hybrid_search(
+            db=db,
+            query_text=search_request.query,
+            top_k=search_request.top_k,
+            mode=search_request.mode,
+            filters=filters,
+            rrf_k=search_request.rrf.k if search_request.rrf else 60,
+            weights=search_request.rrf.weights.model_dump() if search_request.rrf else {"lexical": 1.0, "vector": 1.0}
+        )
+    except Exception:
+        metrics.record_search_request(search_request.mode, 'error', time.time() - start_time, 0)
+        raise
+
     took_ms = int((time.time() - start_time) * 1000)
+    metrics.record_search_request(search_request.mode, 'success', time.time() - start_time, len(results))
     
     # Convert results to SearchResponse format
     search_results = []
@@ -235,7 +259,8 @@ async def search_documents(
                 score=result["score"],
                 page=result.get("page"),
                 snippet=result.get("snippet", ""),
-                ranks=result.get("ranks", {"lexical": 0, "vector": 0})
+                ranks=result.get("ranks", {"lexical": 0, "vector": 0}),
+                citation=result.get('citation')
             )
         )
     
@@ -260,6 +285,6 @@ async def readiness_check():
             db.close()
 
 @app.get("/metrics")
-async def metrics():
+async def export_metrics():
     from .metrics import get_metrics_response
     return get_metrics_response()

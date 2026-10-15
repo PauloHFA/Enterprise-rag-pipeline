@@ -22,6 +22,9 @@ def generate_query_embedding(query_text: str) -> List[float]:
     """Generate embedding for a query text."""
     model = get_embedding_model()
     embedding = model.encode(query_text)
+    embedding = np.asarray(embedding, dtype=float)
+    if embedding.shape != (settings.EMBEDDING_DIMENSION,) or not np.isfinite(embedding).all():
+        raise ValueError('Query embedding dimension or values do not match database configuration')
     return embedding.tolist()
 
 def hybrid_search(
@@ -58,6 +61,7 @@ def hybrid_search(
     filter_params = {
         "qtext": query_text,
         "top_k": top_k,
+        "candidate_limit": max(50, top_k * 3),
         "rrf_k": rrf_k,
         "lexical_weight": weights.get("lexical", 1.0),
         "vector_weight": weights.get("vector", 1.0)
@@ -78,8 +82,8 @@ def hybrid_search(
                 filter_params["created_before"] = value
             elif key == "tags":
                 # Assuming tags are stored in metadata as JSONB array
-                filter_conditions.append("d.metadata -> 'tags' ? :tags")
-                filter_params["tags"] = value
+                filter_conditions.append("d.metadata -> 'tags' ?& CAST(:tags AS text[])")
+                filter_params["tags"] = value if isinstance(value, list) else [value]
     
     filter_clause = " AND ".join(filter_conditions) if filter_conditions else "1=1"
     
@@ -97,7 +101,8 @@ def _lexical_search(db: Session, filter_clause: str, params: Dict[str, Any]) -> 
         SELECT 
             c.id,
             c.document_id,
-            c.page,
+            c.page, c.section, c.section_idx, c.offset_start, c.offset_end,
+            d.filename, COALESCE(d.title, d.filename) AS title,
             c.content,
             ts_rank_cd(c.tsv, websearch_to_tsquery('portuguese', :qtext)) as rank,
             1.0 / (:rrf_k + ROW_NUMBER() OVER (ORDER BY ts_rank_cd(c.tsv, websearch_to_tsquery('portuguese', :qtext)) DESC)) as score
@@ -112,17 +117,8 @@ def _lexical_search(db: Session, filter_clause: str, params: Dict[str, Any]) -> 
     result = db.execute(sql, params)
     rows = result.fetchall()
     
-    return [
-        {
-            "id": row.id,
-            "document_id": row.document_id,
-            "page": row.page,
-            "snippet": row.content[:200] + "..." if len(row.content) > 200 else row.content,
-            "score": float(row.score),
-            "ranks": {"lexical": idx + 1, "vector": 0}
-        }
-        for idx, row in enumerate(rows)
-    ]
+    return [_format_result(row, {"lexical": idx + 1, "vector": 0}) for idx, row in enumerate(rows)]
+
 
 def _vector_search(db: Session, filter_clause: str, params: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Perform vector similarity search using pgvector."""
@@ -130,13 +126,14 @@ def _vector_search(db: Session, filter_clause: str, params: Dict[str, Any]) -> L
         SELECT 
             c.id,
             c.document_id,
-            c.page,
+            c.page, c.section, c.section_idx, c.offset_start, c.offset_end,
+            d.filename, COALESCE(d.title, d.filename) AS title,
             c.content,
             1 - (c.embedding <=> :qvec) as similarity,
             1.0 / (:rrf_k + ROW_NUMBER() OVER (ORDER BY c.embedding <=> :qvec)) as score
         FROM chunks c
         JOIN documents d ON c.document_id = d.id
-        WHERE {filter_clause}
+        WHERE c.embedding IS NOT NULL AND {filter_clause}
         ORDER BY c.embedding <=> :qvec
         LIMIT :top_k
     """).bindparams(bindparam("qvec", type_=Vector(settings.EMBEDDING_DIMENSION)))
@@ -144,17 +141,8 @@ def _vector_search(db: Session, filter_clause: str, params: Dict[str, Any]) -> L
     result = db.execute(sql, params)
     rows = result.fetchall()
     
-    return [
-        {
-            "id": row.id,
-            "document_id": row.document_id,
-            "page": row.page,
-            "snippet": row.content[:200] + "..." if len(row.content) > 200 else row.content,
-            "score": float(row.score),
-            "ranks": {"lexical": 0, "vector": idx + 1}
-        }
-        for idx, row in enumerate(rows)
-    ]
+    return [_format_result(row, {"lexical": 0, "vector": idx + 1}) for idx, row in enumerate(rows)]
+
 
 def _hybrid_search_rrf(db: Session, filter_clause: str, params: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Perform hybrid search with Reciprocal Rank Fusion."""
@@ -163,19 +151,21 @@ def _hybrid_search_rrf(db: Session, filter_clause: str, params: Dict[str, Any]) 
             SELECT 
                 c.id,
                 c.document_id,
-                c.page,
+                c.page, c.section, c.section_idx, c.offset_start, c.offset_end,
+                d.filename, COALESCE(d.title, d.filename) AS title,
                 c.content,
                 ROW_NUMBER() OVER (ORDER BY c.embedding <=> :qvec) AS rnk
             FROM chunks c
             JOIN documents d ON c.document_id = d.id
-            WHERE {filter_clause}
+            WHERE c.embedding IS NOT NULL AND {filter_clause}
             ORDER BY c.embedding <=> :qvec
-            LIMIT 50
+            LIMIT :candidate_limit
         ), lex AS (
             SELECT 
                 c.id,
                 c.document_id,
-                c.page,
+                c.page, c.section, c.section_idx, c.offset_start, c.offset_end,
+                d.filename, COALESCE(d.title, d.filename) AS title,
                 c.content,
                 ROW_NUMBER() OVER (ORDER BY ts_rank_cd(c.tsv, websearch_to_tsquery('portuguese', :qtext)) DESC) AS rnk
             FROM chunks c
@@ -183,12 +173,18 @@ def _hybrid_search_rrf(db: Session, filter_clause: str, params: Dict[str, Any]) 
             WHERE c.tsv @@ websearch_to_tsquery('portuguese', :qtext)
             AND {filter_clause}
             ORDER BY ts_rank_cd(c.tsv, websearch_to_tsquery('portuguese', :qtext)) DESC
-            LIMIT 50
+            LIMIT :candidate_limit
         )
         SELECT 
             COALESCE(sem.id, lex.id) AS id,
             COALESCE(sem.document_id, lex.document_id) AS document_id,
             COALESCE(sem.page, lex.page) AS page,
+            COALESCE(sem.section, lex.section) AS section,
+            COALESCE(sem.section_idx, lex.section_idx) AS section_idx,
+            COALESCE(sem.offset_start, lex.offset_start) AS offset_start,
+            COALESCE(sem.offset_end, lex.offset_end) AS offset_end,
+            COALESCE(sem.filename, lex.filename) AS filename,
+            COALESCE(sem.title, lex.title) AS title,
             COALESCE(sem.content, lex.content) AS content,
             COALESCE(:lexical_weight * 1.0 / (:rrf_k + lex.rnk), 0) +
             COALESCE(:vector_weight * 1.0 / (:rrf_k + sem.rnk), 0) AS score,
@@ -203,17 +199,20 @@ def _hybrid_search_rrf(db: Session, filter_clause: str, params: Dict[str, Any]) 
     result = db.execute(sql, params)
     rows = result.fetchall()
     
-    return [
-        {
-            "id": row.id,
-            "document_id": row.document_id,
-            "page": row.page,
-            "snippet": row.content[:200] + "..." if len(row.content) > 200 else row.content,
-            "score": float(row.score),
-            "ranks": {
-                "lexical": row.lexical_rank if row.lexical_rank else 0,
-                "vector": row.vector_rank if row.vector_rank else 0
-            }
-        }
-        for row in rows
-    ]
+    return [_format_result(row, {"lexical": row.lexical_rank or 0, "vector": row.vector_rank or 0}) for row in rows]
+
+
+def _format_result(row, ranks):
+    excerpt = row.content[:200]
+    start = row.offset_start
+    return {
+        'id': row.id, 'document_id': row.document_id, 'page': row.page,
+        'snippet': excerpt + ('...' if len(row.content) > 200 else ''),
+        'score': float(row.score), 'ranks': ranks,
+        'citation': {
+            'document_id': row.document_id, 'filename': row.filename, 'title': row.title,
+            'page': row.page, 'section': row.section, 'section_idx': row.section_idx,
+            'offset_start': start, 'offset_end': start + len(excerpt) if start is not None else None,
+            'excerpt': excerpt,
+        },
+    }

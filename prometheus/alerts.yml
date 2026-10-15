@@ -1,0 +1,30 @@
+groups:
+  - name: rag-operations
+    rules:
+      - alert: RagWorkerUnavailable
+        expr: up{job="worker"} == 0 or enterprise_rag_worker_active == 0 or absent(up{job="worker"})
+        for: 20s
+        labels:
+          severity: critical
+        annotations:
+          summary: Worker disconnected or scrape unavailable
+      - alert: RagOutboxStalled
+        expr: enterprise_rag_outbox_oldest_seconds > 120
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Pending outbox events older than two minutes
+      - alert: RagDeadLetter
+        expr: increase(enterprise_rag_worker_messages_processed_total{status="dlq"}[5m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: A document exhausted its retry budget
+      - alert: RagApiErrors
+        expr: sum(rate(enterprise_rag_api_requests_total{status=~"5.."}[5m])) > 0.1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: API server error rate elevated

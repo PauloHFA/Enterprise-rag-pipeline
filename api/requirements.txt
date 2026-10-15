@@ -1,11 +1,11 @@
-fastapi==0.109.0
+fastapi==0.143.1
 uvicorn==0.27.0
 sqlalchemy==2.0.25
 asyncpg==0.29.0
 psycopg2-binary==2.9.9
-pydantic==2.5.3
+pydantic==2.14.1
 pydantic-settings==2.1.0
-python-multipart==0.0.6
+python-multipart==0.0.32
 aio-pika==9.3.1
 minio==7.2.0
 python-dotenv==1.0.0
@@ -17,3 +17,6 @@ huggingface-hub==0.25.2
 transformers==4.39.3
 numpy==1.26.4
 torch==2.3.0
+
+alembic==1.20.0
+PyJWT[crypto]==2.15.1

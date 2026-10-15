@@ -9,3 +9,9 @@ htmlcov/
 coverage.xml
 .coverage
 certs/
+.test-results/
+
+.env.*
+!.env.example
+!.env.*.example
+backups/

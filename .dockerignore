@@ -1,0 +1,11 @@
+.git
+.venv
+.env
+.env.*
+!.env.example
+.test-results
+.firecrawl
+**/__pycache__
+htmlcov
+certs
+backups

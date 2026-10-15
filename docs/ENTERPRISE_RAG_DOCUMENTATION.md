@@ -1,5 +1,13 @@
 # Enterprise RAG Pipeline - Documentação Técnica
 
+> Etapa 4: [SECURITY_OPERATIONS.md](SECURITY_OPERATIONS.md) é o guia vigente de
+> autenticação, uploads, esquema compartilhado/Alembic, monitoramento, TLS,
+> retenção e backup/restore. Comandos antigos de implantação abaixo são históricos.
+
+> Etapa 3: [DOCUMENT_PROCESSING.md](DOCUMENT_PROCESSING.md). A extração preserva
+> origem; chunking usa tokens do modelo e embeddings em lote. O terminal é indexed,
+> e a busca retorna citações estruturadas. Seções anteriores são referência histórica.
+
 > Entrega confiável atualizada em 14/10/2026: [RELIABLE_DELIVERY.md](RELIABLE_DELIVERY.md).
 > Upload/reindexação usam outbox transacional e um publicador separado; o worker
 > protege gerações repetidas. A remoção do original após DELETE é eventual via cleanup.
@@ -206,7 +214,7 @@ Para cada chunk:
    - `embedding_model` (nome/versão do modelo)
    - `embedding` (vetor)
    - `tsv` (auto-gerado)
-4. Atualizar status do `Document` para `completed`
+4. Atualizar status do `Document` para `indexed` (terminal atual; anteriormente completed)
 
 ### Estágio 6: Busca Híbrida
 Endpoint de busca (`POST /v1/search`) implementa:
