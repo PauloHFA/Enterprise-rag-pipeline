@@ -1,16 +1,20 @@
-import os
 import json
-import asyncio
+import logging
+from collections.abc import Awaitable, Callable
+
 import aio_pika
 from aio_pika import ExchangeType
-from typing import Callable, Awaitable
+
 from .config import settings
+
+logger = logging.getLogger(__name__)
+
 
 class RabbitMQClient:
     def __init__(self):
         self.url = settings.RABBITMQ_URL
-        self.connection = None
-        self.channel = None
+        self.connection: aio_pika.abc.AbstractRobustConnection | None = None
+        self.channel: aio_pika.abc.AbstractChannel | None = None
 
     async def connect(self):
         if self.connection is not None:
@@ -24,23 +28,18 @@ class RabbitMQClient:
             await self.connection.close()
 
     async def setup_queues(self):
+        assert self.channel is not None, "Connect before declaring queues"
         # Declare dead letter exchange
-        dlx = await self.channel.declare_exchange(
-            "document.dlx", ExchangeType.DIRECT, durable=True
-        )
-        
+        dlx = await self.channel.declare_exchange("document.dlx", ExchangeType.DIRECT, durable=True)
+
         # Declare DLQ queues
-        upload_dlq = await self.channel.declare_queue(
-            "document.upload.dlq", durable=True
-        )
-        reindex_dlq = await self.channel.declare_queue(
-            "document.reindex.dlq", durable=True
-        )
-        
+        upload_dlq = await self.channel.declare_queue("document.upload.dlq", durable=True)
+        reindex_dlq = await self.channel.declare_queue("document.reindex.dlq", durable=True)
+
         # Bind DLQs to DLX
         await upload_dlq.bind(dlx, routing_key="document.upload.dlq")
         await reindex_dlq.bind(dlx, routing_key="document.reindex.dlq")
-        
+
         # Declare main exchanges
         upload_exchange = await self.channel.declare_exchange(
             "document.upload", ExchangeType.DIRECT, durable=True
@@ -48,7 +47,7 @@ class RabbitMQClient:
         reindex_exchange = await self.channel.declare_exchange(
             "document.reindex", ExchangeType.DIRECT, durable=True
         )
-        
+
         # Declare main queues with DLX configuration
         upload_queue = await self.channel.declare_queue(
             "document.upload.queue",
@@ -56,8 +55,8 @@ class RabbitMQClient:
             arguments={
                 "x-dead-letter-exchange": "document.dlx",
                 "x-dead-letter-routing-key": "document.upload.dlq",
-                "x-message-ttl": 86400000  # 24h TTL
-            }
+                "x-message-ttl": 86400000,  # 24h TTL
+            },
         )
         reindex_queue = await self.channel.declare_queue(
             "document.reindex.queue",
@@ -65,27 +64,32 @@ class RabbitMQClient:
             arguments={
                 "x-dead-letter-exchange": "document.dlx",
                 "x-dead-letter-routing-key": "document.reindex.dlq",
-                "x-message-ttl": 86400000  # 24h TTL
-            }
+                "x-message-ttl": 86400000,  # 24h TTL
+            },
         )
-        
+
         # Bind queues to exchanges
         await upload_queue.bind(upload_exchange, routing_key="document.upload")
         await reindex_queue.bind(reindex_exchange, routing_key="document.reindex")
-        delays = [int(value) for value in settings.MESSAGE_RETRY_DELAYS_MS.split(',')]
+        delays = [int(value) for value in settings.MESSAGE_RETRY_DELAYS_MS.split(",")]
         if not delays or any(delay <= 0 for delay in delays):
-            raise ValueError('Retry delays must be positive milliseconds')
-        for routing in ('document.upload', 'document.reindex'):
+            raise ValueError("Retry delays must be positive milliseconds")
+        for routing in ("document.upload", "document.reindex"):
             for attempt, delay in enumerate(delays, 1):
                 await self.channel.declare_queue(
-                    f'{routing}.retry.{attempt}', durable=True,
-                    arguments={'x-message-ttl': delay, 'x-dead-letter-exchange': routing,
-                               'x-dead-letter-routing-key': routing},
+                    f"{routing}.retry.{attempt}",
+                    durable=True,
+                    arguments={
+                        "x-message-ttl": delay,
+                        "x-dead-letter-exchange": routing,
+                        "x-dead-letter-routing-key": routing,
+                    },
                 )
 
     async def publish_message(self, routing_key: str, message: dict):
         if not self.channel or self.channel.is_closed:
             await self.connect()
+        assert self.channel is not None
         # Determine exchange based on routing_key
         if routing_key == "document.upload":
             exchange_name = "document.upload"
@@ -93,18 +97,25 @@ class RabbitMQClient:
             exchange_name = "document.reindex"
         else:
             raise ValueError(f"Unknown routing key: {routing_key}")
-        
+
         exchange = await self.channel.get_exchange(exchange_name)
         message_body = json.dumps(message).encode()
         await exchange.publish(
-            aio_pika.Message(body=message_body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                             message_id=message.get('event_id'), content_type='application/json'),
-            routing_key=routing_key, mandatory=True, timeout=10,
+            aio_pika.Message(
+                body=message_body,
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                message_id=message.get("event_id"),
+                content_type="application/json",
+            ),
+            routing_key=routing_key,
+            mandatory=True,
+            timeout=10,
         )
 
     async def consume_messages(self, routing_key: str, callback: Callable[[dict], Awaitable[None]]):
         if not self.channel:
             await self.connect()
+        assert self.channel is not None
         # Determine queue based on routing_key
         if routing_key == "document.upload":
             queue_name = "document.upload.queue"
@@ -112,7 +123,7 @@ class RabbitMQClient:
             queue_name = "document.reindex.queue"
         else:
             raise ValueError(f"Unknown routing key: {routing_key}")
-        
+
         queue = await self.channel.get_queue(queue_name)
         async with queue.iterator() as queue_iter:
             async for message in queue_iter:
@@ -120,10 +131,6 @@ class RabbitMQClient:
                     try:
                         payload = json.loads(message.body.decode())
                         await callback(payload)
-                    except Exception as e:
-                        print(f"Error processing message: {e}")
-                        # Depending on the policy, we might want to reject or requeue
-                        # For now, we acknowledge and let the DLQ handle it if needed.
-                        # But note: we are not setting up a DLQ in this example.
-                        # We'll just acknowledge and log the error.
-                        pass
+                    except Exception as exc:
+                        logger.warning("Consumer callback failed (%s)", type(exc).__name__)
+                        raise  # process() rejects to the configured DLQ; never acknowledge a failed callback.

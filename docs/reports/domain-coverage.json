@@ -1,0 +1,120 @@
+{
+  "minimum_per_module": 80,
+  "passed": true,
+  "modules": {
+    "api/main.py": {
+      "percent": 92.02,
+      "passed": true,
+      "covered_lines": 150,
+      "statements": 163
+    },
+    "api/search.py": {
+      "percent": 100.0,
+      "passed": true,
+      "covered_lines": 72,
+      "statements": 72
+    },
+    "api/schemas.py": {
+      "percent": 100.0,
+      "passed": true,
+      "covered_lines": 102,
+      "statements": 102
+    },
+    "api/security.py": {
+      "percent": 89.71,
+      "passed": true,
+      "covered_lines": 61,
+      "statements": 68
+    },
+    "api/uploads.py": {
+      "percent": 93.02,
+      "passed": true,
+      "covered_lines": 80,
+      "statements": 86
+    },
+    "api/outbox.py": {
+      "percent": 95.38,
+      "passed": true,
+      "covered_lines": 62,
+      "statements": 65
+    },
+    "api/retention.py": {
+      "percent": 100.0,
+      "passed": true,
+      "covered_lines": 23,
+      "statements": 23
+    },
+    "api/backup.py": {
+      "percent": 91.74,
+      "passed": true,
+      "covered_lines": 100,
+      "statements": 109
+    },
+    "api/reconcile_storage.py": {
+      "percent": 100.0,
+      "passed": true,
+      "covered_lines": 36,
+      "statements": 36
+    },
+    "api/rabbitmq_client.py": {
+      "percent": 98.59,
+      "passed": true,
+      "covered_lines": 70,
+      "statements": 71
+    },
+    "api/minio_client.py": {
+      "percent": 100.0,
+      "passed": true,
+      "covered_lines": 43,
+      "statements": 43
+    },
+    "api/rate_limiter.py": {
+      "percent": 98.67,
+      "passed": true,
+      "covered_lines": 74,
+      "statements": 75
+    },
+    "worker/worker.py": {
+      "percent": 96.23,
+      "passed": true,
+      "covered_lines": 281,
+      "statements": 292
+    },
+    "worker/chunking.py": {
+      "percent": 90.57,
+      "passed": true,
+      "covered_lines": 48,
+      "statements": 53
+    },
+    "worker/extraction.py": {
+      "percent": 95.59,
+      "passed": true,
+      "covered_lines": 130,
+      "statements": 136
+    },
+    "worker/extract_process.py": {
+      "percent": 92.86,
+      "passed": true,
+      "covered_lines": 26,
+      "statements": 28
+    },
+    "worker/replay_dlq.py": {
+      "percent": 100.0,
+      "passed": true,
+      "covered_lines": 39,
+      "statements": 39
+    },
+    "shared/models.py": {
+      "percent": 100.0,
+      "passed": true,
+      "covered_lines": 59,
+      "statements": 59
+    },
+    "shared/telemetry.py": {
+      "percent": 100.0,
+      "passed": true,
+      "covered_lines": 24,
+      "statements": 24
+    }
+  }
+}

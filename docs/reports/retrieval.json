@@ -1,0 +1,3264 @@
+{
+  "status": "measured",
+  "run_id": "eval-df49252263d7463b9a9e9fd10f8f6f0e",
+  "documents": 20,
+  "queries": 60,
+  "chunks": 42,
+  "top_k_chunks": 10,
+  "ranking_unit": "unique documents in first 10 returned chunks",
+  "dataset_provenance": "Synthetic Portuguese enterprise policies, manually authored for regression; not real company policies or a human-validated production relevance set.",
+  "modes": {
+    "lexical": {
+      "aggregate": {
+        "recall@1": 0.26666666666666666,
+        "recall@5": 0.26666666666666666,
+        "recall@10": 0.26666666666666666,
+        "mrr@10": 0.26666666666666666,
+        "ndcg@10": 0.26666666666666666
+      },
+      "queries": [
+        {
+          "query_id": "q01",
+          "ranking": [
+            "ferias"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 6144.812800004729
+        },
+        {
+          "query_id": "q02",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 7.264900006703101
+        },
+        {
+          "query_id": "q03",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.505400000605732
+        },
+        {
+          "query_id": "q04",
+          "ranking": [
+            "remoto"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 6.115699987276457
+        },
+        {
+          "query_id": "q05",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 5.700900001102127
+        },
+        {
+          "query_id": "q06",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.226800003787503
+        },
+        {
+          "query_id": "q07",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.76210000528954
+        },
+        {
+          "query_id": "q08",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.054299999959767
+        },
+        {
+          "query_id": "q09",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 5.735600003390573
+        },
+        {
+          "query_id": "q10",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.778599999961443
+        },
+        {
+          "query_id": "q11",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.349999996018596
+        },
+        {
+          "query_id": "q12",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.1147999949753284
+        },
+        {
+          "query_id": "q13",
+          "ranking": [
+            "incidentes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 7.855000003473833
+        },
+        {
+          "query_id": "q14",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.287399999564514
+        },
+        {
+          "query_id": "q15",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 5.9089999995194376
+        },
+        {
+          "query_id": "q16",
+          "ranking": [
+            "privacidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 6.2286000029416755
+        },
+        {
+          "query_id": "q17",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.443100006435998
+        },
+        {
+          "query_id": "q18",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 5.568100008531474
+        },
+        {
+          "query_id": "q19",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.700500001898035
+        },
+        {
+          "query_id": "q20",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 5.690400008461438
+        },
+        {
+          "query_id": "q21",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 5.433900005300529
+        },
+        {
+          "query_id": "q22",
+          "ranking": [
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 8.497200004057959
+        },
+        {
+          "query_id": "q23",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 5.794400000013411
+        },
+        {
+          "query_id": "q24",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.400400001439266
+        },
+        {
+          "query_id": "q25",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.104400003096089
+        },
+        {
+          "query_id": "q26",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 5.9600000095088035
+        },
+        {
+          "query_id": "q27",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 7.478600004105829
+        },
+        {
+          "query_id": "q28",
+          "ranking": [
+            "desligamento"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 6.346199996187352
+        },
+        {
+          "query_id": "q29",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 7.434200000716373
+        },
+        {
+          "query_id": "q30",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.557200002134778
+        },
+        {
+          "query_id": "q31",
+          "ranking": [
+            "compras"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 7.10199998866301
+        },
+        {
+          "query_id": "q32",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.507599988253787
+        },
+        {
+          "query_id": "q33",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.731600005878136
+        },
+        {
+          "query_id": "q34",
+          "ranking": [
+            "fornecedores"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 7.048900006338954
+        },
+        {
+          "query_id": "q35",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.457399998907931
+        },
+        {
+          "query_id": "q36",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 7.936400012113154
+        },
+        {
+          "query_id": "q37",
+          "ranking": [
+            "contratos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 7.074799999827519
+        },
+        {
+          "query_id": "q38",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.600799999432638
+        },
+        {
+          "query_id": "q39",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.910700001753867
+        },
+        {
+          "query_id": "q40",
+          "ranking": [
+            "pagamentos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 6.751400011125952
+        },
+        {
+          "query_id": "q41",
+          "ranking": [
+            "pagamentos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 7.876200004830025
+        },
+        {
+          "query_id": "q42",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.7233000008855015
+        },
+        {
+          "query_id": "q43",
+          "ranking": [
+            "clientes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 6.583700000192039
+        },
+        {
+          "query_id": "q44",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 7.260200000018813
+        },
+        {
+          "query_id": "q45",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.590399993001483
+        },
+        {
+          "query_id": "q46",
+          "ranking": [
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 7.142599992221221
+        },
+        {
+          "query_id": "q47",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 7.538799996837042
+        },
+        {
+          "query_id": "q48",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.652500000200234
+        },
+        {
+          "query_id": "q49",
+          "ranking": [
+            "deploy"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 7.174800004577264
+        },
+        {
+          "query_id": "q50",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.791700012399815
+        },
+        {
+          "query_id": "q51",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 7.43030000012368
+        },
+        {
+          "query_id": "q52",
+          "ranking": [
+            "mudancas"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 6.546899996465072
+        },
+        {
+          "query_id": "q53",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 7.353900000452995
+        },
+        {
+          "query_id": "q54",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 5.912599997827783
+        },
+        {
+          "query_id": "q55",
+          "ranking": [
+            "retencao"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 7.04799999948591
+        },
+        {
+          "query_id": "q56",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 5.83159999223426
+        },
+        {
+          "query_id": "q57",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.575799998245202
+        },
+        {
+          "query_id": "q58",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 7.309900000109337
+        },
+        {
+          "query_id": "q59",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.089099988457747
+        },
+        {
+          "query_id": "q60",
+          "ranking": [],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.0,
+            "recall@10": 0.0,
+            "mrr@10": 0.0,
+            "ndcg@10": 0.0
+          },
+          "latency_ms": 6.177899995236658
+        }
+      ]
+    },
+    "vector": {
+      "aggregate": {
+        "recall@1": 0.7916666666666666,
+        "recall@5": 0.9583333333333334,
+        "recall@10": 0.9666666666666667,
+        "mrr@10": 0.9444444444444444,
+        "ndcg@10": 0.9439263006139439
+      },
+      "queries": [
+        {
+          "query_id": "q01",
+          "ranking": [
+            "ferias",
+            "reembolso",
+            "viagens",
+            "suporte",
+            "continuidade",
+            "remoto",
+            "clientes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 3629.780600007507
+        },
+        {
+          "query_id": "q02",
+          "ranking": [
+            "ferias",
+            "reembolso",
+            "viagens",
+            "continuidade",
+            "pagamentos",
+            "suporte",
+            "contratos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 42.206500002066605
+        },
+        {
+          "query_id": "q03",
+          "ranking": [
+            "ferias",
+            "continuidade",
+            "reembolso",
+            "remoto",
+            "acessos",
+            "pagamentos",
+            "viagens",
+            "contratos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 40.95490000327118
+        },
+        {
+          "query_id": "q04",
+          "ranking": [
+            "remoto",
+            "ferias",
+            "continuidade",
+            "reembolso",
+            "suporte",
+            "viagens",
+            "incidentes",
+            "mudancas"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 35.2712000021711
+        },
+        {
+          "query_id": "q05",
+          "ranking": [
+            "backup",
+            "mudancas",
+            "remoto",
+            "incidentes",
+            "contratos",
+            "fornecedores",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr@10": 0.3333333333333333,
+            "ndcg@10": 0.45865970635647857
+          },
+          "latency_ms": 33.55659999942873
+        },
+        {
+          "query_id": "q06",
+          "ranking": [
+            "remoto",
+            "desligamento",
+            "mudancas",
+            "ferias",
+            "viagens",
+            "continuidade",
+            "incidentes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 29.72340000269469
+        },
+        {
+          "query_id": "q07",
+          "ranking": [
+            "viagens",
+            "ferias",
+            "reembolso",
+            "remoto",
+            "continuidade",
+            "mudancas"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 24.96189999510534
+        },
+        {
+          "query_id": "q08",
+          "ranking": [
+            "viagens",
+            "reembolso",
+            "ferias",
+            "pagamentos",
+            "continuidade",
+            "compras",
+            "remoto"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.835199998458847
+        },
+        {
+          "query_id": "q09",
+          "ranking": [
+            "viagens",
+            "desligamento",
+            "reembolso",
+            "ferias",
+            "remoto",
+            "compras",
+            "privacidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 25.369199996930547
+        },
+        {
+          "query_id": "q10",
+          "ranking": [
+            "reembolso",
+            "pagamentos",
+            "continuidade",
+            "contratos",
+            "suporte",
+            "clientes",
+            "backup"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 29.385100002400577
+        },
+        {
+          "query_id": "q11",
+          "ranking": [
+            "reembolso",
+            "pagamentos",
+            "compras",
+            "desligamento",
+            "continuidade",
+            "retencao",
+            "clientes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 29.045199989923276
+        },
+        {
+          "query_id": "q12",
+          "ranking": [
+            "reembolso",
+            "pagamentos",
+            "continuidade",
+            "desligamento",
+            "retencao",
+            "compras",
+            "viagens",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.656799993361346
+        },
+        {
+          "query_id": "q13",
+          "ranking": [
+            "incidentes",
+            "contratos",
+            "privacidade",
+            "retencao",
+            "fornecedores",
+            "desligamento"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.440199988428503
+        },
+        {
+          "query_id": "q14",
+          "ranking": [
+            "incidentes",
+            "desligamento",
+            "privacidade",
+            "retencao",
+            "mudancas",
+            "clientes",
+            "continuidade",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9828422279067397
+          },
+          "latency_ms": 28.60179998970125
+        },
+        {
+          "query_id": "q15",
+          "ranking": [
+            "incidentes",
+            "ferias",
+            "suporte",
+            "mudancas",
+            "remoto",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9828422279067397
+          },
+          "latency_ms": 28.280799990170635
+        },
+        {
+          "query_id": "q16",
+          "ranking": [
+            "privacidade",
+            "retencao",
+            "clientes",
+            "desligamento",
+            "fornecedores",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 25.444099999731407
+        },
+        {
+          "query_id": "q17",
+          "ranking": [
+            "privacidade",
+            "clientes",
+            "suporte",
+            "contratos",
+            "desligamento",
+            "compras",
+            "fornecedores"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.930800006492063
+        },
+        {
+          "query_id": "q18",
+          "ranking": [
+            "privacidade",
+            "clientes",
+            "fornecedores",
+            "desligamento",
+            "incidentes",
+            "remoto",
+            "contratos",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.101700001163408
+        },
+        {
+          "query_id": "q19",
+          "ranking": [
+            "backup",
+            "retencao",
+            "continuidade",
+            "desligamento",
+            "deploy",
+            "mudancas",
+            "suporte",
+            "contratos",
+            "reembolso"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.42130000842735
+        },
+        {
+          "query_id": "q20",
+          "ranking": [
+            "backup",
+            "retencao",
+            "continuidade",
+            "deploy",
+            "desligamento",
+            "contratos",
+            "reembolso"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9828422279067397
+          },
+          "latency_ms": 28.30819999508094
+        },
+        {
+          "query_id": "q21",
+          "ranking": [
+            "backup",
+            "reembolso",
+            "pagamentos",
+            "continuidade",
+            "contratos",
+            "ferias"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9173194127129571
+          },
+          "latency_ms": 26.629600004525855
+        },
+        {
+          "query_id": "q22",
+          "ranking": [
+            "continuidade",
+            "mudancas",
+            "backup",
+            "suporte",
+            "retencao",
+            "incidentes",
+            "ferias"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.95780000067316
+        },
+        {
+          "query_id": "q23",
+          "ranking": [
+            "continuidade",
+            "retencao",
+            "mudancas",
+            "contratos",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9173194127129571
+          },
+          "latency_ms": 25.43080000032205
+        },
+        {
+          "query_id": "q24",
+          "ranking": [
+            "mudancas",
+            "retencao",
+            "continuidade",
+            "incidentes",
+            "suporte",
+            "backup",
+            "acessos",
+            "fornecedores"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 0.3333333333333333,
+            "ndcg@10": 0.5
+          },
+          "latency_ms": 30.554799988749437
+        },
+        {
+          "query_id": "q25",
+          "ranking": [
+            "acessos",
+            "contratos",
+            "backup",
+            "fornecedores",
+            "compras",
+            "reembolso",
+            "privacidade",
+            "clientes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.837599991471507
+        },
+        {
+          "query_id": "q26",
+          "ranking": [
+            "acessos",
+            "contratos",
+            "continuidade",
+            "ferias",
+            "viagens",
+            "retencao"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.15919999172911
+        },
+        {
+          "query_id": "q27",
+          "ranking": [
+            "acessos",
+            "privacidade",
+            "fornecedores",
+            "qualidade",
+            "mudancas",
+            "contratos",
+            "ferias",
+            "viagens"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 29.270300001371652
+        },
+        {
+          "query_id": "q28",
+          "ranking": [
+            "desligamento",
+            "contratos",
+            "retencao",
+            "privacidade",
+            "acessos",
+            "incidentes",
+            "fornecedores",
+            "remoto"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 25.347600007080473
+        },
+        {
+          "query_id": "q29",
+          "ranking": [
+            "desligamento",
+            "retencao",
+            "continuidade",
+            "acessos",
+            "viagens",
+            "mudancas",
+            "remoto",
+            "deploy"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9737576937588317
+          },
+          "latency_ms": 28.899400000227615
+        },
+        {
+          "query_id": "q30",
+          "ranking": [
+            "desligamento",
+            "retencao",
+            "backup",
+            "continuidade",
+            "mudancas",
+            "remoto",
+            "incidentes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.43210000335239
+        },
+        {
+          "query_id": "q31",
+          "ranking": [
+            "compras",
+            "fornecedores",
+            "viagens",
+            "clientes",
+            "reembolso",
+            "ferias",
+            "retencao",
+            "desligamento"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.448099994217046
+        },
+        {
+          "query_id": "q32",
+          "ranking": [
+            "reembolso",
+            "compras",
+            "viagens",
+            "pagamentos",
+            "qualidade",
+            "ferias",
+            "fornecedores",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          },
+          "latency_ms": 29.981400002725422
+        },
+        {
+          "query_id": "q33",
+          "ranking": [
+            "compras",
+            "viagens",
+            "fornecedores",
+            "desligamento",
+            "ferias",
+            "privacidade",
+            "contratos",
+            "acessos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.068499999586493
+        },
+        {
+          "query_id": "q34",
+          "ranking": [
+            "fornecedores",
+            "contratos",
+            "acessos",
+            "compras",
+            "clientes",
+            "privacidade",
+            "desligamento",
+            "qualidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.512999997474253
+        },
+        {
+          "query_id": "q35",
+          "ranking": [
+            "clientes",
+            "pagamentos",
+            "privacidade",
+            "desligamento",
+            "fornecedores",
+            "contratos",
+            "acessos"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.4375481772257914
+          },
+          "latency_ms": 29.070200005662628
+        },
+        {
+          "query_id": "q36",
+          "ranking": [
+            "fornecedores",
+            "privacidade",
+            "clientes",
+            "compras",
+            "deploy",
+            "qualidade",
+            "acessos"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.509399999165908
+        },
+        {
+          "query_id": "q37",
+          "ranking": [
+            "contratos",
+            "compras",
+            "privacidade",
+            "acessos",
+            "fornecedores",
+            "desligamento"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 25.07890001288615
+        },
+        {
+          "query_id": "q38",
+          "ranking": [
+            "compras",
+            "contratos",
+            "clientes",
+            "desligamento",
+            "fornecedores",
+            "privacidade",
+            "viagens"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          },
+          "latency_ms": 25.478800002019852
+        },
+        {
+          "query_id": "q39",
+          "ranking": [
+            "contratos",
+            "reembolso",
+            "acessos",
+            "retencao",
+            "mudancas",
+            "pagamentos",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 30.476300002192147
+        },
+        {
+          "query_id": "q40",
+          "ranking": [
+            "pagamentos",
+            "reembolso",
+            "compras",
+            "contratos",
+            "acessos",
+            "ferias",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 25.225900011719204
+        },
+        {
+          "query_id": "q41",
+          "ranking": [
+            "pagamentos",
+            "reembolso",
+            "compras",
+            "fornecedores",
+            "clientes",
+            "viagens",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.63029999914579
+        },
+        {
+          "query_id": "q42",
+          "ranking": [
+            "pagamentos",
+            "compras",
+            "reembolso",
+            "retencao",
+            "desligamento",
+            "contratos",
+            "privacidade"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 32.155300010344945
+        },
+        {
+          "query_id": "q43",
+          "ranking": [
+            "clientes",
+            "fornecedores",
+            "compras",
+            "continuidade",
+            "viagens",
+            "reembolso",
+            "suporte",
+            "contratos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.02680000604596
+        },
+        {
+          "query_id": "q44",
+          "ranking": [
+            "clientes",
+            "contratos",
+            "fornecedores",
+            "suporte",
+            "ferias",
+            "compras",
+            "privacidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 25.708999994094484
+        },
+        {
+          "query_id": "q45",
+          "ranking": [
+            "clientes",
+            "privacidade",
+            "contratos",
+            "compras",
+            "acessos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.639100011787377
+        },
+        {
+          "query_id": "q46",
+          "ranking": [
+            "suporte",
+            "incidentes",
+            "continuidade",
+            "mudancas",
+            "ferias",
+            "retencao",
+            "remoto"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.162800000747666
+        },
+        {
+          "query_id": "q47",
+          "ranking": [
+            "suporte",
+            "continuidade",
+            "contratos",
+            "mudancas",
+            "ferias",
+            "retencao",
+            "deploy"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.918100011651404
+        },
+        {
+          "query_id": "q48",
+          "ranking": [
+            "suporte",
+            "clientes",
+            "privacidade",
+            "deploy",
+            "mudancas",
+            "contratos",
+            "retencao"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.881300007924438
+        },
+        {
+          "query_id": "q49",
+          "ranking": [
+            "deploy",
+            "backup",
+            "retencao",
+            "suporte",
+            "qualidade",
+            "continuidade",
+            "clientes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.327100004185922
+        },
+        {
+          "query_id": "q50",
+          "ranking": [
+            "mudancas",
+            "deploy",
+            "backup",
+            "retencao",
+            "qualidade",
+            "acessos",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6294594810005499
+          },
+          "latency_ms": 31.708900001831353
+        },
+        {
+          "query_id": "q51",
+          "ranking": [
+            "deploy",
+            "mudancas",
+            "continuidade",
+            "suporte",
+            "retencao",
+            "incidentes",
+            "contratos",
+            "pagamentos"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 0.5,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9639988080961093
+          },
+          "latency_ms": 27.47780000208877
+        },
+        {
+          "query_id": "q52",
+          "ranking": [
+            "mudancas",
+            "remoto",
+            "fornecedores",
+            "desligamento",
+            "incidentes",
+            "clientes",
+            "acessos",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.94460000586696
+        },
+        {
+          "query_id": "q53",
+          "ranking": [
+            "mudancas",
+            "acessos",
+            "continuidade",
+            "backup",
+            "ferias",
+            "privacidade",
+            "desligamento"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 29.750600006082095
+        },
+        {
+          "query_id": "q54",
+          "ranking": [
+            "mudancas",
+            "retencao",
+            "acessos",
+            "contratos",
+            "backup",
+            "incidentes",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.95909999986179
+        },
+        {
+          "query_id": "q55",
+          "ranking": [
+            "retencao",
+            "continuidade",
+            "backup",
+            "pagamentos",
+            "suporte",
+            "deploy",
+            "mudancas",
+            "clientes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.424400006770156
+        },
+        {
+          "query_id": "q56",
+          "ranking": [
+            "retencao",
+            "contratos",
+            "mudancas",
+            "acessos",
+            "continuidade",
+            "backup",
+            "viagens"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9173194127129571
+          },
+          "latency_ms": 31.878399997367524
+        },
+        {
+          "query_id": "q57",
+          "ranking": [
+            "retencao",
+            "desligamento",
+            "deploy",
+            "contratos",
+            "privacidade",
+            "suporte",
+            "pagamentos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 31.699399987701327
+        },
+        {
+          "query_id": "q58",
+          "ranking": [
+            "qualidade",
+            "fornecedores",
+            "deploy",
+            "backup",
+            "acessos",
+            "contratos",
+            "compras",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.30470001208596
+        },
+        {
+          "query_id": "q59",
+          "ranking": [
+            "qualidade",
+            "deploy",
+            "retencao",
+            "acessos",
+            "reembolso",
+            "suporte",
+            "backup"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.622099998756312
+        },
+        {
+          "query_id": "q60",
+          "ranking": [
+            "deploy",
+            "qualidade",
+            "contratos",
+            "acessos",
+            "backup",
+            "fornecedores",
+            "mudancas"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.7098097413968655
+          },
+          "latency_ms": 28.464899995015003
+        }
+      ]
+    },
+    "hybrid": {
+      "aggregate": {
+        "recall@1": 0.7916666666666666,
+        "recall@5": 0.9583333333333334,
+        "recall@10": 0.9666666666666667,
+        "mrr@10": 0.9444444444444444,
+        "ndcg@10": 0.9439263006139439
+      },
+      "queries": [
+        {
+          "query_id": "q01",
+          "ranking": [
+            "ferias",
+            "reembolso",
+            "viagens",
+            "suporte",
+            "continuidade",
+            "remoto",
+            "clientes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 32.738800000515766
+        },
+        {
+          "query_id": "q02",
+          "ranking": [
+            "ferias",
+            "reembolso",
+            "viagens",
+            "continuidade",
+            "pagamentos",
+            "suporte",
+            "contratos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 32.31009999581147
+        },
+        {
+          "query_id": "q03",
+          "ranking": [
+            "ferias",
+            "continuidade",
+            "reembolso",
+            "remoto",
+            "acessos",
+            "pagamentos",
+            "viagens",
+            "contratos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 32.50280000793282
+        },
+        {
+          "query_id": "q04",
+          "ranking": [
+            "remoto",
+            "ferias",
+            "continuidade",
+            "reembolso",
+            "suporte",
+            "viagens",
+            "incidentes",
+            "mudancas"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 37.9255000007106
+        },
+        {
+          "query_id": "q05",
+          "ranking": [
+            "backup",
+            "mudancas",
+            "remoto",
+            "incidentes",
+            "contratos",
+            "fornecedores",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr@10": 0.3333333333333333,
+            "ndcg@10": 0.45865970635647857
+          },
+          "latency_ms": 38.38199999881908
+        },
+        {
+          "query_id": "q06",
+          "ranking": [
+            "remoto",
+            "desligamento",
+            "mudancas",
+            "ferias",
+            "viagens",
+            "continuidade",
+            "incidentes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 37.49160000006668
+        },
+        {
+          "query_id": "q07",
+          "ranking": [
+            "viagens",
+            "ferias",
+            "reembolso",
+            "remoto",
+            "continuidade",
+            "mudancas"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 31.786799998371862
+        },
+        {
+          "query_id": "q08",
+          "ranking": [
+            "viagens",
+            "reembolso",
+            "ferias",
+            "pagamentos",
+            "continuidade",
+            "compras",
+            "remoto"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 33.36809999018442
+        },
+        {
+          "query_id": "q09",
+          "ranking": [
+            "viagens",
+            "desligamento",
+            "reembolso",
+            "ferias",
+            "remoto",
+            "compras",
+            "privacidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 31.021399991004728
+        },
+        {
+          "query_id": "q10",
+          "ranking": [
+            "reembolso",
+            "pagamentos",
+            "continuidade",
+            "contratos",
+            "suporte",
+            "clientes",
+            "backup"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 30.47740001056809
+        },
+        {
+          "query_id": "q11",
+          "ranking": [
+            "reembolso",
+            "pagamentos",
+            "compras",
+            "desligamento",
+            "continuidade",
+            "retencao",
+            "clientes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 40.55720000178553
+        },
+        {
+          "query_id": "q12",
+          "ranking": [
+            "reembolso",
+            "pagamentos",
+            "continuidade",
+            "desligamento",
+            "retencao",
+            "compras",
+            "viagens",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 33.83210000174586
+        },
+        {
+          "query_id": "q13",
+          "ranking": [
+            "incidentes",
+            "contratos",
+            "privacidade",
+            "retencao",
+            "fornecedores",
+            "desligamento"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 32.830700001795776
+        },
+        {
+          "query_id": "q14",
+          "ranking": [
+            "incidentes",
+            "desligamento",
+            "privacidade",
+            "retencao",
+            "mudancas",
+            "clientes",
+            "continuidade",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9828422279067397
+          },
+          "latency_ms": 30.399800001760013
+        },
+        {
+          "query_id": "q15",
+          "ranking": [
+            "incidentes",
+            "ferias",
+            "suporte",
+            "mudancas",
+            "remoto",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9828422279067397
+          },
+          "latency_ms": 26.85409999685362
+        },
+        {
+          "query_id": "q16",
+          "ranking": [
+            "privacidade",
+            "retencao",
+            "clientes",
+            "desligamento",
+            "fornecedores",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 30.079500007559545
+        },
+        {
+          "query_id": "q17",
+          "ranking": [
+            "privacidade",
+            "clientes",
+            "suporte",
+            "contratos",
+            "desligamento",
+            "compras",
+            "fornecedores"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 29.79559999948833
+        },
+        {
+          "query_id": "q18",
+          "ranking": [
+            "privacidade",
+            "clientes",
+            "fornecedores",
+            "desligamento",
+            "incidentes",
+            "remoto",
+            "contratos",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 30.01790000416804
+        },
+        {
+          "query_id": "q19",
+          "ranking": [
+            "backup",
+            "retencao",
+            "continuidade",
+            "desligamento",
+            "deploy",
+            "mudancas",
+            "suporte",
+            "contratos",
+            "reembolso"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.051999990362674
+        },
+        {
+          "query_id": "q20",
+          "ranking": [
+            "backup",
+            "retencao",
+            "continuidade",
+            "deploy",
+            "desligamento",
+            "contratos",
+            "reembolso"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9828422279067397
+          },
+          "latency_ms": 27.247599995462224
+        },
+        {
+          "query_id": "q21",
+          "ranking": [
+            "backup",
+            "reembolso",
+            "pagamentos",
+            "continuidade",
+            "contratos",
+            "ferias"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9173194127129571
+          },
+          "latency_ms": 28.55519999866374
+        },
+        {
+          "query_id": "q22",
+          "ranking": [
+            "continuidade",
+            "mudancas",
+            "backup",
+            "suporte",
+            "retencao",
+            "incidentes",
+            "ferias"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 30.866999994032085
+        },
+        {
+          "query_id": "q23",
+          "ranking": [
+            "continuidade",
+            "retencao",
+            "mudancas",
+            "contratos",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9173194127129571
+          },
+          "latency_ms": 24.984599993331358
+        },
+        {
+          "query_id": "q24",
+          "ranking": [
+            "mudancas",
+            "retencao",
+            "continuidade",
+            "incidentes",
+            "suporte",
+            "backup",
+            "acessos",
+            "fornecedores"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 0.3333333333333333,
+            "ndcg@10": 0.5
+          },
+          "latency_ms": 32.122100004926324
+        },
+        {
+          "query_id": "q25",
+          "ranking": [
+            "acessos",
+            "contratos",
+            "backup",
+            "fornecedores",
+            "compras",
+            "reembolso",
+            "privacidade",
+            "clientes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.7745000096038
+        },
+        {
+          "query_id": "q26",
+          "ranking": [
+            "acessos",
+            "contratos",
+            "continuidade",
+            "ferias",
+            "viagens",
+            "retencao"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 30.068100008065812
+        },
+        {
+          "query_id": "q27",
+          "ranking": [
+            "acessos",
+            "privacidade",
+            "fornecedores",
+            "qualidade",
+            "mudancas",
+            "contratos",
+            "ferias",
+            "viagens"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.586000007227995
+        },
+        {
+          "query_id": "q28",
+          "ranking": [
+            "desligamento",
+            "contratos",
+            "retencao",
+            "privacidade",
+            "acessos",
+            "incidentes",
+            "fornecedores",
+            "remoto"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 31.865299999481067
+        },
+        {
+          "query_id": "q29",
+          "ranking": [
+            "desligamento",
+            "retencao",
+            "continuidade",
+            "acessos",
+            "viagens",
+            "mudancas",
+            "remoto",
+            "deploy"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9737576937588317
+          },
+          "latency_ms": 28.209700001752935
+        },
+        {
+          "query_id": "q30",
+          "ranking": [
+            "desligamento",
+            "retencao",
+            "backup",
+            "continuidade",
+            "mudancas",
+            "remoto",
+            "incidentes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.04200000152923
+        },
+        {
+          "query_id": "q31",
+          "ranking": [
+            "compras",
+            "fornecedores",
+            "viagens",
+            "clientes",
+            "reembolso",
+            "ferias",
+            "retencao",
+            "desligamento"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 25.82899999106303
+        },
+        {
+          "query_id": "q32",
+          "ranking": [
+            "reembolso",
+            "compras",
+            "viagens",
+            "pagamentos",
+            "qualidade",
+            "ferias",
+            "fornecedores",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          },
+          "latency_ms": 27.67389999644365
+        },
+        {
+          "query_id": "q33",
+          "ranking": [
+            "compras",
+            "viagens",
+            "fornecedores",
+            "desligamento",
+            "ferias",
+            "privacidade",
+            "contratos",
+            "acessos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 29.630100005306304
+        },
+        {
+          "query_id": "q34",
+          "ranking": [
+            "fornecedores",
+            "contratos",
+            "acessos",
+            "compras",
+            "clientes",
+            "privacidade",
+            "desligamento",
+            "qualidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.73330000147689
+        },
+        {
+          "query_id": "q35",
+          "ranking": [
+            "clientes",
+            "pagamentos",
+            "privacidade",
+            "desligamento",
+            "fornecedores",
+            "contratos",
+            "acessos"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.4375481772257914
+          },
+          "latency_ms": 27.92530000442639
+        },
+        {
+          "query_id": "q36",
+          "ranking": [
+            "fornecedores",
+            "privacidade",
+            "clientes",
+            "compras",
+            "deploy",
+            "qualidade",
+            "acessos"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 31.606400007149205
+        },
+        {
+          "query_id": "q37",
+          "ranking": [
+            "contratos",
+            "compras",
+            "privacidade",
+            "acessos",
+            "fornecedores",
+            "desligamento"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 24.108500001602806
+        },
+        {
+          "query_id": "q38",
+          "ranking": [
+            "compras",
+            "contratos",
+            "clientes",
+            "desligamento",
+            "fornecedores",
+            "privacidade",
+            "viagens"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6309297535714575
+          },
+          "latency_ms": 26.061199998366646
+        },
+        {
+          "query_id": "q39",
+          "ranking": [
+            "contratos",
+            "reembolso",
+            "acessos",
+            "retencao",
+            "mudancas",
+            "pagamentos",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.100700001232326
+        },
+        {
+          "query_id": "q40",
+          "ranking": [
+            "pagamentos",
+            "reembolso",
+            "compras",
+            "contratos",
+            "acessos",
+            "ferias",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.664100009133108
+        },
+        {
+          "query_id": "q41",
+          "ranking": [
+            "pagamentos",
+            "reembolso",
+            "compras",
+            "fornecedores",
+            "clientes",
+            "viagens",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.84460000495892
+        },
+        {
+          "query_id": "q42",
+          "ranking": [
+            "pagamentos",
+            "compras",
+            "reembolso",
+            "retencao",
+            "desligamento",
+            "contratos",
+            "privacidade"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.796099999453872
+        },
+        {
+          "query_id": "q43",
+          "ranking": [
+            "clientes",
+            "fornecedores",
+            "compras",
+            "continuidade",
+            "viagens",
+            "reembolso",
+            "suporte",
+            "contratos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.189099997282028
+        },
+        {
+          "query_id": "q44",
+          "ranking": [
+            "clientes",
+            "contratos",
+            "fornecedores",
+            "suporte",
+            "ferias",
+            "compras",
+            "privacidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.94169999449514
+        },
+        {
+          "query_id": "q45",
+          "ranking": [
+            "clientes",
+            "privacidade",
+            "contratos",
+            "compras",
+            "acessos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.195099988603033
+        },
+        {
+          "query_id": "q46",
+          "ranking": [
+            "suporte",
+            "incidentes",
+            "continuidade",
+            "mudancas",
+            "ferias",
+            "retencao",
+            "remoto"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.229199997032993
+        },
+        {
+          "query_id": "q47",
+          "ranking": [
+            "suporte",
+            "continuidade",
+            "contratos",
+            "mudancas",
+            "ferias",
+            "retencao",
+            "deploy"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 29.712300005485304
+        },
+        {
+          "query_id": "q48",
+          "ranking": [
+            "suporte",
+            "clientes",
+            "privacidade",
+            "deploy",
+            "mudancas",
+            "contratos",
+            "retencao"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.29610001167748
+        },
+        {
+          "query_id": "q49",
+          "ranking": [
+            "deploy",
+            "backup",
+            "retencao",
+            "suporte",
+            "qualidade",
+            "continuidade",
+            "clientes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.885999996215105
+        },
+        {
+          "query_id": "q50",
+          "ranking": [
+            "mudancas",
+            "deploy",
+            "backup",
+            "retencao",
+            "qualidade",
+            "acessos",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 0.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 0.5,
+            "ndcg@10": 0.6294594810005499
+          },
+          "latency_ms": 27.774400005000643
+        },
+        {
+          "query_id": "q51",
+          "ranking": [
+            "deploy",
+            "mudancas",
+            "continuidade",
+            "suporte",
+            "retencao",
+            "incidentes",
+            "contratos",
+            "pagamentos"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 0.5,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9639988080961093
+          },
+          "latency_ms": 27.730700006941333
+        },
+        {
+          "query_id": "q52",
+          "ranking": [
+            "mudancas",
+            "remoto",
+            "fornecedores",
+            "desligamento",
+            "incidentes",
+            "clientes",
+            "acessos",
+            "continuidade"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 26.49800000654068
+        },
+        {
+          "query_id": "q53",
+          "ranking": [
+            "mudancas",
+            "acessos",
+            "continuidade",
+            "backup",
+            "ferias",
+            "privacidade",
+            "desligamento"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 25.905400005285628
+        },
+        {
+          "query_id": "q54",
+          "ranking": [
+            "mudancas",
+            "retencao",
+            "acessos",
+            "contratos",
+            "backup",
+            "incidentes",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 29.05080000346061
+        },
+        {
+          "query_id": "q55",
+          "ranking": [
+            "retencao",
+            "continuidade",
+            "backup",
+            "pagamentos",
+            "suporte",
+            "deploy",
+            "mudancas",
+            "clientes"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 27.035999999498017
+        },
+        {
+          "query_id": "q56",
+          "ranking": [
+            "retencao",
+            "contratos",
+            "mudancas",
+            "acessos",
+            "continuidade",
+            "backup",
+            "viagens"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 0.5,
+            "recall@10": 0.5,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.9173194127129571
+          },
+          "latency_ms": 26.934699999401346
+        },
+        {
+          "query_id": "q57",
+          "ranking": [
+            "retencao",
+            "desligamento",
+            "deploy",
+            "contratos",
+            "privacidade",
+            "suporte",
+            "pagamentos"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 29.563800009782426
+        },
+        {
+          "query_id": "q58",
+          "ranking": [
+            "qualidade",
+            "fornecedores",
+            "deploy",
+            "backup",
+            "acessos",
+            "contratos",
+            "compras",
+            "suporte"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 29.59809999447316
+        },
+        {
+          "query_id": "q59",
+          "ranking": [
+            "qualidade",
+            "deploy",
+            "retencao",
+            "acessos",
+            "reembolso",
+            "suporte",
+            "backup"
+          ],
+          "scores": {
+            "recall@1": 1.0,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 1.0
+          },
+          "latency_ms": 28.962700002011843
+        },
+        {
+          "query_id": "q60",
+          "ranking": [
+            "deploy",
+            "qualidade",
+            "contratos",
+            "acessos",
+            "backup",
+            "fornecedores",
+            "mudancas"
+          ],
+          "scores": {
+            "recall@1": 0.5,
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr@10": 1.0,
+            "ndcg@10": 0.7098097413968655
+          },
+          "latency_ms": 29.238799994345754
+        }
+      ]
+    }
+  },
+  "environment": {
+    "measured_at": "2026-10-15T04:05:01.174241+00:00",
+    "commit": "05bbddf049375cbfd6cf76ac04e3bce8ca42aca6",
+    "working_tree_dirty": true,
+    "client_python": "3.11.16",
+    "client_platform": "Windows-10-10.0.26300-SP0",
+    "source_sha256": {
+      "api/search.py": "0ca3a1ddf8cfff27f1c4adace865391f209e89b8141095144380a93ff45c822f",
+      "worker/chunking.py": "847fa136987ce6b595efa6b516b4e2caa8fff30950ca0274d5a1223e6a9af9bf",
+      "api/requirements.txt": "2b1b4371bcffeb32a73e8018c1423bbb987f13c579fc2ec527c3397129ad61bf",
+      "worker/requirements.txt": "5adaea95dd274317e2554dafb50277dc9c8f426c4c76f0209dadc7a5d3587d58"
+    },
+    "runtime": {
+      "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+      "versions": {
+        "torch": "2.14.1+cpu",
+        "sentence-transformers": "6.1.0",
+        "transformers": "5.19.0",
+        "huggingface-hub": "1.33.0",
+        "numpy": "1.26.4"
+      },
+      "settings": {
+        "CHUNK_TARGET_TOKENS": "48",
+        "CHUNK_OVERLAP_TOKENS": "6",
+        "EMBEDDING_BATCH_SIZE": "2",
+        "OCR_ENABLED": "true",
+        "TORCH_NUM_THREADS": null,
+        "EMBEDDING_MODEL_REVISION": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+        "COVERAGE_PROCESS_START": "/app/.coveragerc"
+      },
+      "coverage_installed": true
+    },
+    "docker_resources": {
+      "NCPU": 16,
+      "MemTotal": 16710299648,
+      "Architecture": "x86_64",
+      "OSType": "linux",
+      "ServerVersion": "29.8.2"
+    }
+  },
+  "dataset_sha256": "aaf2e47c6ee55c0a4dfbb359c3444b3ac88be7861eae92b344286d39139b5dc3",
+  "regression_floor": {
+    "recall@10": 0.9,
+    "mrr@10": 0.7,
+    "ndcg@10": 0.75
+  },
+  "quality_gate_passed": true
+}

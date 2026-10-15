@@ -1,0 +1,33 @@
+# Instrumentation only: production images and Compose files do not install coverage.
+services:
+  model-init:
+    build:
+      target: instrumented
+    # Backup exercises run as root without DAC_OVERRIDE; both UIDs must be able
+    # to write independent coverage shards. This test-only volume has no documents.
+    command: ["sh", "-c", "chown -R 10001:10001 /models /coverage && chmod 1777 /coverage"]
+    volumes:
+      - coverage_data:/coverage
+  api:
+    build:
+      target: instrumented
+    environment:
+      COVERAGE_PROCESS_START: /app/.coveragerc
+    volumes:
+      - coverage_data:/coverage
+  outbox:
+    build:
+      target: instrumented
+    environment:
+      COVERAGE_PROCESS_START: /app/.coveragerc
+    volumes:
+      - coverage_data:/coverage
+  worker:
+    build:
+      target: instrumented
+    environment:
+      COVERAGE_PROCESS_START: /app/.coveragerc
+    volumes:
+      - coverage_data:/coverage
+volumes:
+  coverage_data:

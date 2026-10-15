@@ -1,0 +1,20 @@
+# Last override after docker-compose.test.yml: production binaries, no tracing overhead.
+services:
+  model-init:
+    build:
+      target: production
+  api:
+    build:
+      target: production
+    environment:
+      COVERAGE_PROCESS_START: ""
+  worker:
+    build:
+      target: production
+    environment:
+      COVERAGE_PROCESS_START: ""
+  outbox:
+    build:
+      target: production
+    environment:
+      COVERAGE_PROCESS_START: ""

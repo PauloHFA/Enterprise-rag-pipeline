@@ -1,8 +1,14 @@
-from minio import Minio
-from minio.error import S3Error
-import os
 import io
+import logging
+
+from minio.error import S3Error
+
+from minio import Minio
+
 from .config import settings
+
+logger = logging.getLogger(__name__)
+
 
 class MinioClient:
     def __init__(self):
@@ -14,7 +20,7 @@ class MinioClient:
             self.endpoint,
             access_key=self.access_key,
             secret_key=self.secret_key,
-            secure=self.secure
+            secure=self.secure,
         )
         self.bucket_name = settings.MINIO_BUCKET
 
@@ -23,27 +29,29 @@ class MinioClient:
             if not self.client.bucket_exists(self.bucket_name):
                 self.client.make_bucket(self.bucket_name)
         except S3Error as e:
-            print(f"Error ensuring bucket exists: {e}")
+            logger.warning("MinIO ensuring bucket exists failed (%s)", type(e).__name__)
             raise
 
-    def upload_file(self, bucket_name: str, object_name: str, data: bytes, length: int, content_type: str):
+    def upload_file(
+        self, bucket_name: str, object_name: str, data: bytes, length: int, content_type: str
+    ):
         try:
             self.client.put_object(
                 bucket_name=bucket_name,
                 object_name=object_name,
                 data=io.BytesIO(data),
                 length=length,
-                content_type=content_type
+                content_type=content_type,
             )
         except S3Error as e:
-            print(f"Error uploading file: {e}")
+            logger.warning("MinIO uploading file failed (%s)", type(e).__name__)
             raise
 
     def delete_file(self, bucket_name: str, object_name: str):
         try:
             self.client.remove_object(bucket_name, object_name)
         except S3Error as e:
-            print(f"Error deleting file: {e}")
+            logger.warning("MinIO deleting file failed (%s)", type(e).__name__)
             raise
 
     def get_file(self, bucket_name: str, object_name: str):
@@ -54,5 +62,5 @@ class MinioClient:
             response.release_conn()
             return data
         except S3Error as e:
-            print(f"Error getting file: {e}")
+            logger.warning("MinIO getting file failed (%s)", type(e).__name__)
             raise

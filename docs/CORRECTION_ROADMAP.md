@@ -1,6 +1,6 @@
 # Plano de correção e implementação
 
-Revisão: 14/10/2026. Referência: PDF Documentacao_Plano_de_Acao_Enterprise_RAG,
+Revisão: 15/10/2026. Referência: PDF Documentacao_Plano_de_Acao_Enterprise_RAG,
 RF-01 a RF-10 e RNF-01 a RNF-08. Este plano substitui os estados de conclusão
 desatualizados do IMPLEMENTATION_PLAN.md; existência de código não comprova aceite.
 
@@ -67,7 +67,10 @@ Guia técnico e runbook: [SECURITY_OPERATIONS.md](SECURITY_OPERATIONS.md).
 Aceite: migração e restore comprovados; métricas variam após operações reais;
 alertas disparados em teste; uploads rejeitados e isolamento de tenants comprovado.
 
-## 5. Medir e fechar os critérios de aceite — pendente
+## 5. Medir e fechar os critérios de aceite — implementada e validada localmente, com desvios registrados
+
+Resultados, limitações e pendências de homologação:
+[ACCEPTANCE_REPORT.md](ACCEPTANCE_REPORT.md). Reprodução: [TESTING.md](TESTING.md).
 
 - Dataset de 50–200 consultas com gabarito; recall@k, MRR e nDCG@10 nos três modos.
 - Benchmark de p95 upload <300 ms e busca <500 ms; baseline de docs/min e chunks/s.
@@ -221,5 +224,27 @@ Prometheus, sem receiver externo configurado. Retenção exige agendamento expl�
 backup exige escritores parados e restore exige destino vazio. Windows aplica
 timeout de extração; limites resource são do Linux. CI remoto aguarda commit/push.
 
-Próxima implementação: etapa 5, avaliação de recuperação, benchmarks, cobertura
-dos módulos de domínio, gates de CI e fechamento dos critérios de aceite.
+## Resultado da etapa 5 — 15/10/2026
+
+- Avaliação nos três modos, 60 consultas sintéticas com gabarito e 20 documentos,
+  com relatórios dos parâmetros padrão e do perfil de teste. No padrão, híbrido:
+  recall@10 98,33%, MRR@10 91,81% e nDCG@10 92,74%. Dados reais ainda requerem juízes.
+- Benchmark sem instrumentação: upload p95 até 96,12 ms nos perfis até 1 MiB;
+  híbrido p95 145,47 ms com quatro clientes; 108,52 docs/min e 21,70 chunks/s
+  para TXT pequeno. Primeiras requisições de upload/busca: 2,06/7,60 segundos.
+- 156 unitários e 23 cenários reais aprovados; cobertura combinada 95,27%,
+  com todos os 19 módulos de domínio acima de 80%. Gate não usa só a média global.
+- Lint/formatação, mypy Linux e auditoria de dependências executados; API/worker
+  de produção sem vulnerabilidades Python conhecidas na data, sem pacotes ignorados.
+- CI efetivo preparado para gates, integração, avaliação, cobertura, auditorias,
+  benchmark e demonstração. Execução remota aguarda commit/push.
+- ADRs, contrato de eventos, runbooks e relatórios JSON versionados em docs/reports.
+  Gerador cria configuração privada com cinco credenciais, sem sobrescrever envs.
+
+Limites: corpus sintético, pequeno e local; um milhão de chunks não exercitado;
+latências sem TLS e sem cotas CPU/memória do Compose prod/free. Homologação com
+dados reais, carga/cotas de produção e arquivos maiores continua necessária.
+Domínio, certificados reais, backup/agendamento e alertas externos dependem do
+operador. O roteiro principal não tem etapas de implementação restantes; estas
+pendências não são apresentadas como validação já realizada de produção.
+Credenciais e configurações: [DEPLOYMENT_CONFIGURATION.md](DEPLOYMENT_CONFIGURATION.md).

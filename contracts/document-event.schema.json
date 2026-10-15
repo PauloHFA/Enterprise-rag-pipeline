@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Enterprise RAG document upload/reindex event, producer contract v1",
+  "type": "object",
+  "required": ["event_id", "document_id", "tenant_id", "generation", "storage_key", "filename", "mime_type", "metadata"],
+  "properties": {
+    "event_id": {"type":"string","format":"uuid"},
+    "document_id": {"type":"string","format":"uuid"},
+    "tenant_id": {"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"},
+    "generation": {"type":"integer","minimum":1},
+    "storage_key": {"type":"string","minLength":1},
+    "filename": {"type":"string","minLength":1},
+    "mime_type": {"type":"string","minLength":1},
+    "metadata": {"type":"object"},
+    "traceparent": {"type":"string","pattern":"^$|^00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]$"}
+  },
+  "additionalProperties": true
+}

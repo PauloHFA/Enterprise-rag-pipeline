@@ -6,7 +6,8 @@ A scalable, event-driven RAG (Retrieval-Augmented Generation) pipeline for enter
 
 ### Free / production setup
 
-Use [Security and operations](docs/SECURITY_OPERATIONS.md) for credentials,
+Use [Deployment configuration](docs/DEPLOYMENT_CONFIGURATION.md) for all credentials
+and settings, and [Security and operations](docs/SECURITY_OPERATIONS.md) for
 trusted TLS certificates, migrations, monitoring and restore instructions.
 The standalone files target a Linux Docker host; cost depends on its provider.
 
@@ -16,13 +17,13 @@ git clone git@github.com:PauloHFA/Enterprise-rag-pipeline.git enterprise-rag
 cd enterprise-rag
 
 # 2. Configure variáveis de ambiente
-cp .env.free.example .env.production
-# Preencha todos os valores CHANGE_ME.
+python scripts/configure.py init --file .env.production
+# Requer python-dotenv. Gera cinco segredos; não substitui um arquivo existente.
 
 # 3. Forneça certificados confiáveis em certs/fullchain.pem e certs/privkey.pem.
 
 # 4. Deploy
-docker compose --env-file .env.production -f docker-compose.free.yml up -d --build --wait
+docker compose -p enterprise-rag-free --env-file .env.production -f docker-compose.free.yml up -d --build --wait --wait-timeout 300
 
 # 5. Teste
 # Configure API_KEY no shell e use o domínio do certificado.
@@ -64,7 +65,7 @@ curl -X POST "http://localhost:8000/v1/search" \
 
 ```bash
 # Start all services (production with monitoring)
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -p enterprise-rag-prod --env-file .env.production -f docker-compose.prod.yml up -d --build --wait --wait-timeout 300
 ```
 
 ## Architecture
@@ -112,6 +113,12 @@ docker-compose -f docker-compose.prod.yml up -d
 - ✅ CI/CD pipeline (GitHub Actions)
 
 ## Documentation
+
+See [Stage 5 acceptance results](docs/ACCEPTANCE_REPORT.md) for measured retrieval,
+latency, coverage and remaining production validation. [Testing](docs/TESTING.md)
+reproduces the quality gates, and [Deployment configuration](docs/DEPLOYMENT_CONFIGURATION.md)
+lists every credential, optional identity setting, DNS/TLS and operational requirement.
+See also [ADRs](docs/ADRS.md) and [Event contracts](docs/EVENT_CONTRACTS.md).
 
 See [docs/DOCUMENT_PROCESSING.md](docs/DOCUMENT_PROCESSING.md) for structured extraction, token-aware chunking, batched embeddings, OCR and source citations. The ingestion terminal status is now `indexed`; update clients that wait for `completed` and reindex older documents to populate provenance.
 
@@ -166,10 +173,11 @@ pytest --cov=api --cov=worker --cov-report=html
 
 ```bash
 # Lint
-ruff check api/ worker/ tests/
+ruff check api worker shared tests evaluation benchmarks scripts migrations
+ruff format --check api worker shared tests evaluation benchmarks scripts migrations
 
 # Type check
-mypy api/ worker/
+mypy api worker shared evaluation benchmarks scripts --platform linux
 ```
 
 ## Production deployment and operations

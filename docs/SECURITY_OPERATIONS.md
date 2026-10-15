@@ -1,5 +1,9 @@
 # Etapa 4 — segurança e operação
 
+Para o inventário completo de segredos, DNS/TLS e parâmetros, consulte
+[Configuração de implantação](DEPLOYMENT_CONFIGURATION.md). As medições mais
+recentes e pendências de homologação estão no [aceite da etapa 5](ACCEPTANCE_REPORT.md).
+
 ## Upload e extração
 
 O limite padrão é 20 MiB por arquivo e mais 64 KiB para o envelope multipart.

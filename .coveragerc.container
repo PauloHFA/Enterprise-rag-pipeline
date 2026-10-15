@@ -1,0 +1,15 @@
+[run]
+source = api,worker,shared
+relative_files = True
+parallel = True
+sigterm = True
+data_file = /coverage/.coverage
+
+[report]
+exclude_also =
+    if __name__ == .__main__.:
+
+[paths]
+source =
+    .
+    /app
