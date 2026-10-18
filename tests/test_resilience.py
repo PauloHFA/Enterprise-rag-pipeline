@@ -331,12 +331,21 @@ def test_worker_death_during_chunk_commit_is_recovered(client):
     function = "test_pause_chunk_" + uuid.uuid4().hex[:8]
     trigger = function + "_trigger"
     doc = None
+    barrier = psycopg2.connect(DB_URL)
+    barrier.autocommit = True
+    lock_key = uuid.uuid4().int % (2**63)
     compose("stop", "worker")
     try:
+        # Hold INSERT until this test releases the lock. A fixed sleep can end
+        # during Docker's graceful stop, allowing a commit before the crash.
+        with barrier.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_lock(%s)", (lock_key,))
         doc = upload(client, "workercrash" + uuid.uuid4().hex)
         sql(
             f"""CREATE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$
-            BEGIN IF NEW.document_id = %s::uuid THEN PERFORM pg_sleep(10); END IF;
+            BEGIN IF NEW.document_id = %s::uuid THEN
+                PERFORM pg_advisory_xact_lock({lock_key});
+            END IF;
             RETURN NEW; END $$""",
             (doc["id"],),
         )
@@ -346,13 +355,21 @@ def test_worker_death_during_chunk_commit_is_recovered(client):
         compose("start", "worker")
         wait_until(
             lambda: sql(
-                "SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE wait_event = 'PgSleep' AND query LIKE %s)",
-                ("%INSERT INTO chunks%",),
+                "SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE %s = ANY(pg_blocking_pids(pid)) AND query LIKE %s)",
+                (barrier.get_backend_pid(), "%INSERT INTO chunks%"),
             )[0][0]
         )
-        compose("stop", "worker")
+        worker_pid = sql(
+            "SELECT pid FROM pg_stat_activity WHERE %s = ANY(pg_blocking_pids(pid)) AND query LIKE %s",
+            (barrier.get_backend_pid(), "%INSERT INTO chunks%"),
+        )[0][0]
+        compose("stop", "--timeout", "0", "worker")
+        barrier.close()
+        # Wait for the database backend to notice the dead client and roll back.
+        wait_until(lambda: not sql("SELECT 1 FROM pg_stat_activity WHERE pid = %s", (worker_pid,)))
         assert sql("SELECT count(*) FROM chunks WHERE document_id = %s", (doc["id"],)) == [(0,)]
     finally:
+        barrier.close()
         sql(f"DROP FUNCTION IF EXISTS {function}() CASCADE")
         compose("start", "worker")
     try:
